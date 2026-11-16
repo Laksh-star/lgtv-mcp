@@ -21,8 +21,17 @@ If the TV gets a new DHCP address, the server finds it again over SSDP, checks i
 ## Registered in
 
 - **Claude Code** (user scope): `claude mcp add --scope user lgtv -- /opt/homebrew/bin/uv run --directory /path/to/lg-tv lgtv-mcp`
-- **Claude desktop**: `mcpServers.lgtv` in `~/Library/Application Support/Claude/claude_desktop_config.json`
-  (a backup was saved alongside it as `claude_desktop_config.json.bak-<timestamp>`). Restart the app to load it.
+- **Claude desktop**: `mcpServers.lgtv` in `~/Library/Application Support/Claude/claude_desktop_config.json`.
+  Quit the app fully (Cmd+Q) first: it keeps this file in memory while it runs and saves over outside edits.
+  Then, in Terminal:
+
+  ```bash
+  /opt/homebrew/bin/uv run --directory /path/to/lg-tv python scripts/install_claude_desktop.py
+  ```
+
+  The script backs up the config to `claude_desktop_config.json.bak-<timestamp>`, refuses to run while the app is open, and leaves other servers untouched.
+  It writes absolute paths for `uv` and the project, because the desktop app doesn't use your shell PATH. Reopen the app afterwards.
+  If the server misbehaves, its log is `~/Library/Logs/Claude/mcp-server-lgtv.log`.
 
 ## Tools
 
