@@ -22,9 +22,9 @@ DEFAULT_TOML = """\
 # Everything else is picked up on the next page refresh (within 5 minutes).
 
 [location]
-name = "Hyderabad"
-latitude = 17.385
-longitude = 78.4867
+name = "New Delhi"         # set your own city: name, latitude, longitude
+latitude = 28.6139
+longitude = 77.2090
 timezone = "Asia/Kolkata"
 
 [schedule]
@@ -62,9 +62,9 @@ class Feed:
 
 @dataclass
 class Config:
-    city: str = "Hyderabad"
-    latitude: float = 17.385
-    longitude: float = 78.4867
+    city: str = "New Delhi"
+    latitude: float = 28.6139
+    longitude: float = 77.2090
     timezone: str = "Asia/Kolkata"
     weekdays: list[int] = field(default_factory=lambda: [1, 2, 3, 4, 5])
     time: str = "07:30"
@@ -99,9 +99,9 @@ def load_config() -> Config:
     loc, sched, srv = raw.get("location", {}), raw.get("schedule", {}), raw.get("server", {})
     cal = raw.get("calendar", {})
     cfg = Config(
-        city=loc.get("name", "Hyderabad"),
-        latitude=float(loc.get("latitude", 17.385)),
-        longitude=float(loc.get("longitude", 78.4867)),
+        city=loc.get("name", "New Delhi"),
+        latitude=float(loc.get("latitude", 28.6139)),
+        longitude=float(loc.get("longitude", 77.2090)),
         timezone=loc.get("timezone", "Asia/Kolkata"),
         weekdays=[int(d) for d in sched.get("weekdays", [1, 2, 3, 4, 5])],
         time=str(sched.get("time", "07:30")),
