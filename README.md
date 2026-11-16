@@ -11,8 +11,9 @@
 [![webOS 25](https://img.shields.io/badge/LG%20webOS-25-A50034)](https://webostv.developer.lge.com/)
 [![macOS](https://img.shields.io/badge/runs%20on-macOS-000000?logo=apple&logoColor=white)](#)
 [![Tools](https://img.shields.io/badge/MCP%20tools-21-2EA44F)](#-tools)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[Quick start](#-quick-start) · [Tools](#-tools) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
+[Quick start](#-quick-start) · [Tools](#-tools) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Privacy](#-privacy-and-security) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
 
 </div>
 
@@ -102,6 +103,18 @@ Then just ask: *"Turn on the TV and play lofi hip hop on YouTube."*
 | 💬 Notify | `show_toast` | On-screen notification bubble |
 | 🌅 Briefing | `show_briefing` | Shows the morning briefing now, turning the TV on if needed |
 
+### Opening a specific title
+
+`launch_app` passes `content_id` straight to the app, so a deep link can start a film instead of stopping at the app's home screen. Tested on the TV above:
+
+| App | `content_id` | Status |
+|---|---|---|
+| Netflix | `m=https://www.netflix.com/watch/<NETFLIX_ID>&source_type=4` | ✅ Opens the title. Take the ID from the title's web URL (`netflix.com/title/<id>`) |
+| YouTube | use `youtube_video` / `youtube_search` instead | ✅ |
+| Prime Video, JioHotstar, Zee5 | | Not tested yet |
+
+The app may stop at its "Who's watching?" profile screen first. Claude can't see the screen, so it can't pick a profile reliably.
+
 > [!NOTE]
 > With **TV On With Mobile** enabled, the TV usually sits in *Active Standby* after `power_off`, and `power_on` brings it back in about a second. After a while it can drop off the network entirely. Then Wake-on-LAN wakes it in about 15 seconds. Tools that need a lit screen refuse in standby rather than "succeeding" against a dark TV.
 
@@ -160,9 +173,9 @@ Everything lives in **`~/.config/lgtv/briefing.toml`**:
 
 ```toml
 [location]               # weather city
-name = "Hyderabad"
-latitude = 17.385
-longitude = 78.4867
+name = "New Delhi"       # your city; find coordinates on open-meteo.com
+latitude = 28.6139
+longitude = 77.2090
 timezone = "Asia/Kolkata"
 
 [schedule]               # after editing, run:  uv run briefing install
@@ -295,6 +308,26 @@ lg-tv/
     └── install_claude_desktop.py
 ```
 
+## 🔒 Privacy and security
+
+Everything runs on your Mac and your home network. There is no cloud relay, and nothing listens on the internet.
+
+- **Pairing key:** `~/.config/lgtv/config.json` (mode 0600). Anyone with this key on your network can control the TV, so treat it like a password. Delete it and run `uv run lgtv-pair --force` to re-pair; you can also remove the paired device on the TV.
+- **Calendar:** the Google Calendar secret iCal address stays in the macOS Keychain. It grants read access to your calendar without a login, so if it ever leaks, reset it in Google Calendar settings.
+- **Briefing page:** served on your LAN only, and the server answers just the TV, this Mac and any `allow_ips` you add. Don't port-forward it from your router.
+- **What leaves the house:** weather requests to Open-Meteo (your configured coordinates), RSS fetches to the feeds you list, and the calendar fetch to Google. Claude sees whatever its tools return, such as app lists and your calendar events in a briefing.
+- **Not in this repo:** your TV's IP and MAC, the pairing key, the calendar address and your `briefing.toml`. Keep it that way if you fork it.
+
+## 🧪 Compatibility
+
+Tested on one TV: an **LG 55UT80406LA** (UT80, 2024) on **webOS 25 (10.3.2)**, controlled from a **Mac mini** on the same Wi-Fi.
+
+- **Other LG TVs:** aiowebostv speaks the same SSAP protocol across webOS versions, so other models will probably work. They're untested; app ids, deep links and the browser app can differ.
+- **macOS only for the briefing:** it relies on launchd, `pmset` and the Keychain. The MCP server itself is plain Python, but it's only been run on macOS.
+- **Before pairing:** turn on *TV On With Mobile* (needed for `power_on`) and, for faster wake-ups, *Quick Start+*. Exact menu paths vary by webOS version.
+
+Issues are welcome. Please include your TV model, webOS version and the relevant lines from the log.
+
 ## 🩺 Troubleshooting
 
 | Symptom | Fix |
@@ -314,5 +347,9 @@ uv run python -c "import asyncio; from lgtv_mcp.server import mcp; print([t.name
 uv run mcp dev src/lgtv_mcp/server.py      # MCP Inspector
 uv run briefing preview                     # iterate on the TV page in a desktop browser
 ```
+
+## 📄 License
+
+[MIT](LICENSE). LG and webOS are trademarks of LG Electronics. This project is not affiliated with or endorsed by LG.
 
 <div align="center"><sub>Built with Claude Code · runs entirely on your LAN, no cloud relay</sub></div>

@@ -3,6 +3,8 @@ name = "lgtv-mcp"
 version = "0.1.0"
 description = "MCP server that controls an LG webOS TV over the local network"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "aiowebostv>=1.1.0",
