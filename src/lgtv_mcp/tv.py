@@ -247,5 +247,36 @@ class TV:
                 await asyncio.to_thread(send_magic_packet, self.mac, ip_address=ip)
             await asyncio.sleep(0.3)
 
+    async def ensure_on(self, timeout: float = 30) -> str:
+        """Turn the TV on (Wake-on-LAN, plus SSAP turnOn from standby) and wait until it is on."""
+        if self.client is not None and self.client.is_connected() and self.client.tv_state.is_on:
+            return "The TV is already on."
+        await self.wake()
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        tried_ssap = False
+        while loop.time() < deadline:
+            if self.host and await port_open(self.host, timeout=1):
+                try:
+                    client = await self.connect()
+                except TVError:
+                    await asyncio.sleep(1.5)
+                    continue
+                if client.tv_state.is_on:
+                    return f"The TV is on ({client.tv_state.power_state.get('state', 'On')})."
+                if not tried_ssap:  # reachable but in standby: ask it to turn on
+                    tried_ssap = True
+                    try:
+                        await client.power_on()
+                    except Exception:  # noqa: BLE001 - not all states accept it
+                        pass
+            else:
+                await self.wake()
+            await asyncio.sleep(1.5)
+        raise TVUnavailable(
+            f"Sent Wake-on-LAN but the TV didn't come up within {timeout:.0f} s. Check that 'TV On With "
+            "Mobile' (Settings > General > Devices > External Devices) is enabled and the TV has power."
+        )
+
     async def close(self) -> None:
         await self._drop_client()

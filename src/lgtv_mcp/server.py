@@ -161,33 +161,7 @@ def _youtube_id(video: str) -> str:
 @tv_tool
 async def power_on() -> str:
     """Turn the TV on (Wake-on-LAN magic packet, plus a webOS wake request if it is in standby)."""
-    if tv.client is not None and tv.client.is_connected() and tv.client.tv_state.is_on:
-        return "The TV is already on."
-    await tv.wake()
-    deadline = asyncio.get_running_loop().time() + 30
-    tried_ssap = False
-    while asyncio.get_running_loop().time() < deadline:
-        if tv.host and await port_open(tv.host, timeout=1):
-            try:
-                client = await tv.connect()
-            except TVError:
-                await asyncio.sleep(1.5)
-                continue
-            if client.tv_state.is_on:
-                return f"The TV is on ({client.tv_state.power_state.get('state', 'On')})."
-            if not tried_ssap:  # reachable but in standby: ask it to turn on
-                tried_ssap = True
-                try:
-                    await client.power_on()
-                except Exception:  # noqa: BLE001 - not all states accept it
-                    pass
-        else:
-            await tv.wake()
-        await asyncio.sleep(1.5)
-    raise ToolError(
-        "Sent Wake-on-LAN but the TV didn't come up within 30 s. Check that 'TV On With Mobile' "
-        "(Settings > General > Devices > External Devices) is enabled and the TV has power."
-    )
+    return await tv.ensure_on()
 
 
 @mcp.tool()
@@ -503,6 +477,24 @@ async def channel_up() -> str:
 async def channel_down() -> str:
     """Previous Live TV channel (opens Live TV first if another app is showing)."""
     return await _step_channel(False)
+
+
+@mcp.tool()
+@tv_tool
+async def show_briefing(
+    take_over: Annotated[bool, Field(description="Take over the screen even if something is playing. "
+                                                 "false = only show a one-line notification when the TV is busy")] = True,
+) -> str:
+    """Show the morning briefing on the TV: date, weather, today's calendar and top headlines.
+
+    Turns the TV on if needed and opens the briefing page in the TV's web browser
+    (falls back to on-screen notifications if the page can't be shown).
+    """
+    from .briefing.config import load_config, setup_logging
+    from .briefing.show import show
+
+    setup_logging().info("run: requested through the show_briefing tool")
+    return await show(tv, load_config(), take_over=take_over)
 
 
 def main() -> None:
