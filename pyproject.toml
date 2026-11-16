@@ -1,0 +1,19 @@
+[project]
+name = "lgtv-mcp"
+version = "0.1.0"
+description = "MCP server that controls an LG webOS TV over the local network"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiowebostv>=1.1.0",
+    "mcp[cli]>=2.3.0",
+    "wakeonlan>=4.0.0",
+]
+
+[project.scripts]
+lgtv-mcp = "lgtv_mcp.server:main"
+lgtv-pair = "lgtv_mcp.pair:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
