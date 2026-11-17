@@ -179,7 +179,7 @@ async def _wait_for_ui(client, app_id: str, timeout: float) -> tuple[float, bool
 async def _start_playback(client, app_id: str, lands_on: str, delay: float) -> dict[str, Any]:
     """After a deep link, get past a 'Who's watching?' screen and make sure the video starts.
 
-    Learned on the TV (see field-notes/):
+    Learned on the TV (live tests, 17 Nov 2026):
     - Netflix ("playback"): starts the film itself, behind an info overlay, ~6-20 s after launch.
       An OK press then would pause it, so OK is pressed only if nothing plays and UI is showing.
     - Prime Video ("details"): profile picker (OK picks the focused profile), then the title page with

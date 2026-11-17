@@ -10,3 +10,6 @@ wheels/
 .venv
 config.json
 *.tmp
+
+# Local test notes and TV screen captures (personal profiles visible)
+field-notes/

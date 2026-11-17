@@ -140,7 +140,7 @@ The app may stop at its "Who's watching?" profile screen first. Claude can't see
 | JioHotstar | `hotstar` | ❌ | Bare id, full URL, `hotstar://content/<id>`, `params.contentTarget`, `params.contentId`: all land on Home. Opened with a toast |
 | ZEE5 | `com.zee5.app` | ❌ | Bare id, full URL, `params.contentTarget`: black screen with a spinner. Opened with a toast |
 
-Netflix episode ids aren't on Wikidata or public pages, so an episode request opens the show (the tool says so in `note`). If `playback.result` is `not confirmed playing`, the reply includes a screen capture to look at. Full notes and every screen capture from the tests are in [`field-notes/2026-11-17-movie-night`](field-notes/2026-11-17-movie-night/FIELD_NOTES.md).
+Netflix episode ids aren't on Wikidata or public pages, so an episode request opens the show (the tool says so in `note`). If `playback.result` is `not confirmed playing`, the reply includes a screen capture to look at.
 
 ### `/movienight`
 
@@ -348,7 +348,6 @@ lg-tv/
 │       ├── web.py             # aiohttp server with an IP allowlist
 │       └── show.py            # busy check, browser launch + load confirmation, toasts, auto-off
 ├── .claude/skills/movienight/  # /movienight skill (Screenward + play_title)
-├── field-notes/                # live test notes and TV screen captures
 └── scripts/
     └── install_claude_desktop.py
 ```
