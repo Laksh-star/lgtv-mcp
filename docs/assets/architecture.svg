@@ -1,0 +1,306 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 900" width="1280" height="900" role="img" aria-labelledby="title desc">
+  <title id="title">lgtv-mcp architecture</title>
+  <desc id="desc">Claude desktop and Claude Code talk to the lgtv-mcp server on a Mac mini over MCP. The server drives an LG webOS TV over SSAP, wakes it with Wake-on-LAN and finds it with SSDP. A launchd job runs the weekday morning briefing, which gathers calendar, weather and headlines from the internet and serves a page that the TV's browser loads. Screenward provides TMDB movie discovery for movie night, and play_title looks up streaming ids on Wikidata.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1120"/>
+      <stop offset="1" stop-color="#111a30"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="aV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#a78bfa"/></marker>
+    <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#38bdf8"/></marker>
+    <marker id="aA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#f59e0b"/></marker>
+    <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#34d399"/></marker>
+    <marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/></marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: #e2e8f0; }
+      .h1 { font-size: 30px; font-weight: 700; fill: #f8fafc; letter-spacing: -0.5px; }
+      .sub { font-size: 14px; fill: #94a3b8; }
+      .zone { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; fill: #64748b; }
+      .bt { font-size: 15px; font-weight: 700; fill: #f8fafc; }
+      .ct { font-size: 13px; font-weight: 650; fill: #f1f5f9; }
+      .st { font-size: 12px; font-weight: 650; fill: #f1f5f9; }
+      .ln { font-size: 11.5px; fill: #cbd5e1; }
+      .sm { font-size: 10.5px; fill: #94a3b8; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .pill { font-size: 10px; font-weight: 600; }
+      .say { font-size: 11.5px; fill: #ddd6fe; font-style: italic; }
+      .card { fill: #172033; stroke-width: 1.2; }
+      .panel { fill: #ffffff; fill-opacity: 0.025; stroke: #334155; stroke-width: 1.2; stroke-dasharray: 5 5; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="900" rx="28" fill="url(#bg)"/>
+
+  <!-- header -->
+  <text class="h1" x="40" y="56">lgtv-mcp</text>
+  <text class="sub" x="40" y="80">Claude ↔ Mac mini ↔ LG webOS TV · 30 MCP tools · everything stays on your home network</text>
+  <g class="pill">
+    <rect x="938" y="38" width="88" height="24" rx="12" fill="#1e1b4b" stroke="#a78bfa" stroke-opacity="0.6"/>
+    <text x="982" y="54" text-anchor="middle" style="fill:#ddd6fe">MCP SDK 2.x</text>
+    <rect x="1034" y="38" width="88" height="24" rx="12" fill="#082f49" stroke="#38bdf8" stroke-opacity="0.6"/>
+    <text x="1078" y="54" text-anchor="middle" style="fill:#bae6fd">aiowebostv</text>
+    <rect x="1130" y="38" width="110" height="24" rx="12" fill="#1c1917" stroke="#f59e0b" stroke-opacity="0.6"/>
+    <text x="1185" y="54" text-anchor="middle" style="fill:#fde68a">Python · uv</text>
+  </g>
+
+  <!-- ===================== zones ===================== -->
+  <text class="zone" x="40" y="117">YOU ASK CLAUDE</text>
+  <rect class="panel" x="300" y="98" width="588" height="662" rx="18"/>
+  <text class="zone" x="318" y="117">MAC MINI</text>
+  <rect class="panel" x="940" y="98" width="300" height="502" rx="18"/>
+  <text class="zone" x="958" y="117">HOME WI-FI</text>
+  <rect class="panel" x="40" y="790" width="1200" height="88" rx="18"/>
+  <text class="zone" x="1220" y="814" text-anchor="end">INTERNET</text>
+
+  <!-- ===================== left column: clients ===================== -->
+  <rect class="card" x="40" y="128" width="220" height="52" rx="12" stroke="#a78bfa"/>
+  <text class="ct" x="58" y="150">Claude desktop</text>
+  <text class="sm" x="58" y="168">Chat · Connectors</text>
+  <rect class="card" x="40" y="194" width="220" height="52" rx="12" stroke="#a78bfa"/>
+  <text class="ct" x="58" y="216">Claude Code</text>
+  <text class="sm" x="58" y="234">CLI · desktop Code tab</text>
+  <rect x="56" y="258" width="188" height="26" rx="13" fill="#2e1065" stroke="#a78bfa" stroke-opacity="0.7"/>
+  <text class="pill mono" x="150" y="275" text-anchor="middle" style="fill:#ddd6fe;font-size:11px">/movienight skill</text>
+
+  <rect class="card" x="40" y="330" width="220" height="78" rx="12" stroke="#a78bfa" stroke-dasharray="4 3"/>
+  <text class="ct" x="58" y="352">Screenward MCP</text>
+  <text class="sm" x="58" y="370">TMDB discovery: what streams</text>
+  <text class="sm" x="58" y="385">in India on the apps the TV has</text>
+  <text class="sm" x="58" y="400">(separate server)</text>
+
+  <!-- example asks -->
+  <text class="zone" x="86" y="446">FOR EXAMPLE</text>
+  <g>
+    <rect x="86" y="456" width="174" height="44" rx="12" fill="#1e1b4b" stroke="#4c1d95"/>
+    <text class="say" x="98" y="474">“Put on a feel-good Malayalam</text>
+    <text class="say" x="98" y="490">film for the family”</text>
+    <rect x="86" y="510" width="174" height="28" rx="12" fill="#1e1b4b" stroke="#4c1d95"/>
+    <text class="say" x="98" y="528">“No briefing tomorrow”</text>
+    <rect x="86" y="548" width="174" height="28" rx="12" fill="#1e1b4b" stroke="#4c1d95"/>
+    <text class="say" x="98" y="566">“Mark this scene”</text>
+    <rect x="86" y="586" width="174" height="28" rx="12" fill="#1e1b4b" stroke="#4c1d95"/>
+    <text class="say" x="98" y="604">“Show my briefing”</text>
+    <rect x="86" y="624" width="174" height="28" rx="12" fill="#1e1b4b" stroke="#4c1d95"/>
+    <text class="say" x="98" y="642">“Turn the TV off”</text>
+  </g>
+
+  <!-- ===================== Mac: MCP server ===================== -->
+  <rect class="card" x="330" y="128" width="536" height="172" rx="14" stroke="#a78bfa" stroke-width="1.6"/>
+  <text class="bt" x="348" y="154">lgtv-mcp</text>
+  <text class="sm" x="420" y="154">MCP server · server.py · 30 tools, readable errors when the TV is off</text>
+  <g text-anchor="middle">
+    <g>
+      <rect x="346" y="170" width="118" height="54" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.55"/>
+      <text class="st" x="405" y="192">Power · status</text>
+      <text class="sm" x="405" y="210">on · off · screen</text>
+      <rect x="474" y="170" width="118" height="54" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.55"/>
+      <text class="st" x="533" y="192">Sound</text>
+      <text class="sm" x="533" y="210">volume · mute</text>
+      <rect x="602" y="170" width="118" height="54" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.55"/>
+      <text class="st" x="661" y="192">Inputs · Live TV</text>
+      <text class="sm" x="661" y="210">HDMI · channel ±</text>
+      <rect x="730" y="170" width="118" height="54" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.55"/>
+      <text class="st" x="789" y="192">Apps</text>
+      <text class="sm" x="789" y="210">launch · YouTube</text>
+    </g>
+    <g>
+      <rect x="346" y="234" width="118" height="54" rx="10" fill="#0f172a" stroke="#a78bfa" stroke-opacity="0.7"/>
+      <text class="st" x="405" y="256">Play a title</text>
+      <text class="sm" x="405" y="274">Netflix · Prime</text>
+      <rect x="474" y="234" width="118" height="54" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.55"/>
+      <text class="st" x="533" y="256">Remote</text>
+      <text class="sm" x="533" y="274">buttons · toasts</text>
+      <rect x="602" y="234" width="118" height="54" rx="10" fill="#0f172a" stroke="#a78bfa" stroke-opacity="0.7"/>
+      <text class="st" x="661" y="256">Scenes</text>
+      <text class="sm" x="661" y="274">capture · annotate</text>
+      <rect x="730" y="234" width="118" height="54" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-opacity="0.8"/>
+      <text class="st" x="789" y="256">Briefing</text>
+      <text class="sm" x="789" y="274">pause · resume</text>
+    </g>
+  </g>
+
+  <!-- movie night + tv manager -->
+  <rect class="card" x="330" y="320" width="260" height="110" rx="14" stroke="#a78bfa"/>
+  <text class="ct" x="348" y="344">Movie night · scenes</text>
+  <text class="sm mono" x="348" y="361">play.py · titles.py · scenes.py</text>
+  <text class="ln" x="348" y="380">TMDB id → Netflix / Prime id</text>
+  <text class="ln" x="348" y="397">deep link, profile screen, Play</text>
+  <text class="ln" x="348" y="414">captures → scene cards</text>
+
+  <rect class="card" x="606" y="320" width="260" height="110" rx="14" stroke="#38bdf8" stroke-width="1.6"/>
+  <text class="ct" x="624" y="344">TV manager</text>
+  <text class="sm mono" x="624" y="361">tv.py</text>
+  <text class="ln" x="624" y="380">SSAP session + live TV state</text>
+  <text class="ln" x="624" y="397">SSDP rediscovery · Wake-on-LAN</text>
+  <text class="ln" x="624" y="414">pairing · ensure_on()</text>
+
+  <!-- briefing engine -->
+  <rect class="card" x="330" y="450" width="536" height="190" rx="14" stroke="#f59e0b" stroke-width="1.6"/>
+  <text class="bt" x="348" y="475">Morning briefing</text>
+  <text class="sm" x="484" y="475">weekdays 07:30</text>
+  <g text-anchor="middle">
+    <rect x="344" y="490" width="112" height="136" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-opacity="0.5"/>
+    <text class="st" x="400" y="512">gather()</text>
+    <text class="sm mono" x="400" y="528">sources.py</text>
+    <text class="sm" x="400" y="552">calendar</text>
+    <text class="sm" x="400" y="568">weather · RSS</text>
+    <text class="sm" x="400" y="584">each source</text>
+    <text class="sm" x="400" y="600">fails on its own</text>
+
+    <rect x="476" y="490" width="112" height="136" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-opacity="0.5"/>
+    <text class="st" x="532" y="512">launchd</text>
+    <text class="sm mono" x="532" y="528">control.py</text>
+    <text class="sm" x="532" y="552">Mon–Fri 07:30</text>
+    <text class="sm" x="532" y="568">skips paused days</text>
+    <text class="sm" x="532" y="584">Mac wakes 07:25</text>
+
+    <rect x="608" y="490" width="112" height="136" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-opacity="0.5"/>
+    <text class="st" x="664" y="512">briefing run</text>
+    <text class="sm mono" x="664" y="528">show.py</text>
+    <text class="sm" x="664" y="552">TV busy → a toast</text>
+    <text class="sm" x="664" y="568">else the page</text>
+    <text class="sm" x="664" y="584">or toasts</text>
+    <text class="sm" x="664" y="600">TV off at +30 min</text>
+
+    <rect x="740" y="490" width="112" height="136" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-opacity="0.5"/>
+    <text class="st" x="796" y="512">page server</text>
+    <text class="sm mono" x="796" y="528">:8765 · web.py</text>
+    <text class="sm" x="796" y="552">1080p dark page</text>
+    <text class="sm" x="796" y="568">refreshes 5 min</text>
+    <text class="sm" x="796" y="584">TV + Mac only</text>
+  </g>
+
+  <!-- stores -->
+  <rect class="card" x="476" y="662" width="112" height="78" rx="12" stroke="#94a3b8" stroke-opacity="0.7"/>
+  <text class="st" x="532" y="686" text-anchor="middle">Keychain</text>
+  <text class="sm" x="532" y="704" text-anchor="middle">Google Calendar</text>
+  <text class="sm" x="532" y="720" text-anchor="middle">secret iCal address</text>
+
+  <rect class="card" x="608" y="662" width="258" height="78" rx="12" stroke="#94a3b8" stroke-opacity="0.7"/>
+  <text class="st mono" x="624" y="684" style="font-size:11.5px">~/.config/lgtv · ~/Library/Logs</text>
+  <text class="sm" x="624" y="701">pairing key · briefing.toml · pause state</text>
+  <text class="sm" x="624" y="716">title ids · watch history · scenes</text>
+  <text class="sm" x="624" y="731">briefing log</text>
+
+  <!-- ===================== right: the TV ===================== -->
+  <ellipse cx="1090" cy="325" rx="170" ry="120" fill="url(#glow)"/>
+  <text x="1090" y="168" text-anchor="middle" style="font-size:17px;font-weight:700;fill:#f8fafc">LG webOS TV</text>
+  <text class="sm" x="1090" y="188" text-anchor="middle">55UT80 · webOS 25</text>
+  <text class="sm" x="1090" y="204" text-anchor="middle">Active Standby, woken by Wake-on-LAN</text>
+
+  <rect x="960" y="250" width="260" height="150" rx="8" fill="#020617" stroke="#475569" stroke-width="2"/>
+  <rect x="966" y="256" width="248" height="138" rx="4" fill="url(#screen)"/>
+  <!-- mini briefing page -->
+  <text x="978" y="280" style="font-size:12px;font-weight:700;fill:#f8fafc">Tuesday 17 Nov</text>
+  <text x="1204" y="282" text-anchor="end" style="font-size:20px;font-weight:700;fill:#f8fafc">07:30</text>
+  <text x="978" y="296" style="font-size:9px;fill:#fbbf24">Hyderabad 22° · Clear · rain 0%</text>
+  <text x="978" y="316" style="font-size:7px;font-weight:700;letter-spacing:1px;fill:#64748b">TODAY</text>
+  <rect x="978" y="322" width="16" height="5" rx="2" fill="#38bdf8"/><rect x="998" y="322" width="76" height="5" rx="2" fill="#475569"/>
+  <rect x="978" y="333" width="16" height="5" rx="2" fill="#38bdf8"/><rect x="998" y="333" width="60" height="5" rx="2" fill="#475569"/>
+  <rect x="978" y="344" width="16" height="5" rx="2" fill="#38bdf8"/><rect x="998" y="344" width="68" height="5" rx="2" fill="#475569"/>
+  <text x="1096" y="316" style="font-size:7px;font-weight:700;letter-spacing:1px;fill:#64748b">HEADLINES</text>
+  <rect x="1096" y="322" width="108" height="4" rx="2" fill="#475569"/>
+  <rect x="1096" y="331" width="92" height="4" rx="2" fill="#475569"/>
+  <rect x="1096" y="340" width="100" height="4" rx="2" fill="#475569"/>
+  <rect x="1096" y="349" width="84" height="4" rx="2" fill="#475569"/>
+  <rect x="978" y="372" width="226" height="1" fill="#1e293b"/>
+  <text x="978" y="384" style="font-size:7px;fill:#64748b">Morning briefing · refreshes every 5 min</text>
+  <path d="M1074 400 L1066 422 H1114 L1106 400 Z" fill="#334155"/>
+  <rect x="1036" y="422" width="108" height="6" rx="3" fill="#475569"/>
+
+  <g class="sm" text-anchor="start">
+    <text x="1108" y="468">on screen:</text>
+    <text x="1108" y="486" style="fill:#cbd5e1">Netflix · Prime</text>
+    <text x="1108" y="502" style="fill:#cbd5e1">YouTube · Live TV</text>
+    <text x="1108" y="518" style="fill:#cbd5e1">HDMI · web browser</text>
+    <text x="1108" y="534" style="fill:#cbd5e1">toasts · captures</text>
+  </g>
+
+  <!-- legend -->
+  <rect x="940" y="620" width="300" height="140" rx="18" fill="#ffffff" fill-opacity="0.025" stroke="#334155" stroke-width="1.2"/>
+  <text class="zone" x="958" y="642">LEGEND</text>
+  <g class="sm" style="fill:#cbd5e1">
+    <line x1="960" y1="660" x2="996" y2="660" stroke="#a78bfa" stroke-width="2"/><text x="1008" y="664" style="fill:#cbd5e1">MCP over stdio</text>
+    <line x1="960" y1="680" x2="996" y2="680" stroke="#38bdf8" stroke-width="2"/><text x="1008" y="684" style="fill:#cbd5e1">TV control (SSAP websocket)</text>
+    <line x1="960" y1="700" x2="996" y2="700" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 4"/><text x="1008" y="704" style="fill:#cbd5e1">Wake-on-LAN · SSDP discovery</text>
+    <line x1="960" y1="720" x2="996" y2="720" stroke="#f59e0b" stroke-width="2"/><text x="1008" y="724" style="fill:#cbd5e1">Briefing</text>
+    <line x1="960" y1="740" x2="996" y2="740" stroke="#34d399" stroke-width="2"/><text x="1008" y="744" style="fill:#cbd5e1">Fetches from the internet</text>
+  </g>
+
+  <!-- ===================== internet ===================== -->
+  <g text-anchor="middle">
+    <rect class="card" x="44" y="818" width="150" height="46" rx="12" stroke="#34d399"/>
+    <text class="st" x="119" y="837">TMDB</text>
+    <text class="sm" x="119" y="853">via Screenward</text>
+    <rect class="card" x="250" y="818" width="126" height="46" rx="12" stroke="#34d399"/>
+    <text class="st" x="313" y="837">Wikidata</text>
+    <text class="sm" x="313" y="853">streaming ids</text>
+    <rect class="card" x="400" y="818" width="152" height="46" rx="12" stroke="#34d399"/>
+    <text class="st" x="476" y="837">Google Calendar</text>
+    <text class="sm" x="476" y="853">secret iCal feed</text>
+    <rect class="card" x="568" y="818" width="136" height="46" rx="12" stroke="#34d399"/>
+    <text class="st" x="636" y="837">Open-Meteo</text>
+    <text class="sm" x="636" y="853">weather</text>
+    <rect class="card" x="720" y="818" width="146" height="46" rx="12" stroke="#34d399"/>
+    <text class="st" x="793" y="837">RSS headlines</text>
+    <text class="sm" x="793" y="853">The Hindu · BBC</text>
+  </g>
+  <text class="ln" x="1220" y="840" text-anchor="end">No cloud relay. Nothing listens</text>
+  <text class="ln" x="1220" y="858" text-anchor="end">on the internet; only outbound fetches.</text>
+
+  <!-- ===================== arrows ===================== -->
+  <g fill="none" stroke-width="2">
+    <!-- Claude -> lgtv-mcp -->
+    <path d="M260 154 H326" stroke="#a78bfa" marker-end="url(#aV)"/>
+    <path d="M260 220 H326" stroke="#a78bfa" marker-end="url(#aV)"/>
+    <!-- skill -> Screenward -->
+    <path d="M150 284 V326" stroke="#a78bfa" marker-end="url(#aV)" stroke-dasharray="4 3"/>
+    <!-- Screenward -> TMDB -->
+    <path d="M64 408 V814" stroke="#34d399" marker-end="url(#aG)"/>
+    <!-- server -> modules -->
+    <path d="M460 300 V316" stroke="#a78bfa" marker-end="url(#aV)"/>
+    <path d="M736 300 V316" stroke="#38bdf8" marker-end="url(#aB)"/>
+    <!-- movie night -> TV manager -->
+    <path d="M590 375 H602" stroke="#38bdf8" marker-end="url(#aB)"/>
+    <!-- play -> Wikidata -->
+    <path d="M330 404 H313 V814" stroke="#34d399" marker-end="url(#aG)"/>
+    <!-- tv.py -> TV -->
+    <path d="M866 345 H956" stroke="#38bdf8" marker-end="url(#aB)"/>
+    <path d="M866 385 H956" stroke="#38bdf8" stroke-dasharray="5 4" marker-end="url(#aB)"/>
+    <!-- briefing internals -->
+    <path d="M588 560 H604" stroke="#f59e0b" marker-end="url(#aA)"/>
+    <path d="M664 490 V434" stroke="#f59e0b" marker-end="url(#aA)"/>
+    <path d="M476 700 H430 V630" stroke="#94a3b8" marker-end="url(#aS)"/>
+    <!-- gather -> internet -->
+    <path d="M380 626 V782 H793" stroke="#34d399"/>
+    <path d="M476 782 V814" stroke="#34d399" marker-end="url(#aG)"/>
+    <path d="M636 782 V814" stroke="#34d399" marker-end="url(#aG)"/>
+    <path d="M793 782 V814" stroke="#34d399" marker-end="url(#aG)"/>
+    <!-- TV browser -> page server -->
+    <path d="M1090 430 V560 H856" stroke="#f59e0b" marker-end="url(#aA)"/>
+  </g>
+
+  <!-- arrow labels (pills mask the lines under them) -->
+  <g class="pill" text-anchor="middle">
+    <rect x="266" y="176" width="56" height="18" rx="9" fill="#0b1120" stroke="#a78bfa" stroke-opacity="0.6"/>
+    <text x="294" y="189" style="fill:#ddd6fe">stdio</text>
+    <rect x="160" y="296" width="40" height="18" rx="9" fill="#0b1120" stroke="#a78bfa" stroke-opacity="0.6"/>
+    <text x="180" y="309" style="fill:#ddd6fe">MCP</text>
+    <rect x="869" y="326" width="68" height="18" rx="9" fill="#0b1120" stroke="#38bdf8" stroke-opacity="0.6"/>
+    <text x="903" y="339" style="fill:#bae6fd">wss :3001</text>
+    <rect x="869" y="392" width="68" height="18" rx="9" fill="#0b1120" stroke="#38bdf8" stroke-opacity="0.6"/>
+    <text x="903" y="405" style="fill:#bae6fd">WoL · SSDP</text>
+    <rect x="672" y="436" width="96" height="18" rx="9" fill="#0b1120" stroke="#f59e0b" stroke-opacity="0.6"/>
+    <text x="720" y="449" style="fill:#fde68a">drives the TV</text>
+    <rect x="958" y="551" width="104" height="18" rx="9" fill="#0b1120" stroke="#f59e0b" stroke-opacity="0.6"/>
+    <text x="1010" y="564" style="fill:#fde68a">browser GET /</text>
+  </g>
+</svg>

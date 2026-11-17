@@ -10,7 +10,7 @@
 [![aiowebostv](https://img.shields.io/badge/aiowebostv-1.1-41BDF5?logo=homeassistant&logoColor=white)](https://github.com/home-assistant-libs/aiowebostv)
 [![webOS 25](https://img.shields.io/badge/LG%20webOS-25-A50034)](https://webostv.developer.lge.com/)
 [![macOS](https://img.shields.io/badge/runs%20on-macOS-000000?logo=apple&logoColor=white)](#)
-[![Tools](https://img.shields.io/badge/MCP%20tools-26-2EA44F)](#-tools)
+[![Tools](https://img.shields.io/badge/MCP%20tools-30-2EA44F)](#-tools)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 [Quick start](#-quick-start) · [Tools](#-tools) · [Movie night](#-movie-night) · [Scene capture](#-scene-capture) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Privacy](#-privacy-and-security) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
@@ -32,6 +32,11 @@ It talks to the TV over webOS's SSAP websocket (secure port 3001) through [aiowe
 With [Screenward](https://github.com/Laksh-star/screenward) alongside, `/movienight` goes from "a Malayalam feel-good film for the family" to the film playing. On top of that sits a **weekday morning briefing**: date, weather, today's calendar and headlines on the big screen at 07:30.
 
 > Tested live on an **LG 55UT80406LA** (UT80, 2024), webOS 25 (10.3.2), from a Mac mini on the same Wi-Fi.
+
+<p align="center">
+  <a href="docs/architecture.md"><img src="docs/assets/architecture.svg" alt="How lgtv-mcp fits together: Claude talks MCP to a server on the Mac, which drives the LG TV over SSAP, wakes it with Wake-on-LAN, and runs a scheduled morning briefing page from calendar, weather and RSS data" width="100%"></a>
+  <br><sub>Claude ↔ Mac mini ↔ LG TV at a glance. Click through for the detailed diagrams.</sub>
+</p>
 
 ## ✨ Highlights
 
@@ -291,86 +296,15 @@ sudo pmset repeat cancel      # removes the Mac wake schedule
 
 ## 🏗️ Architecture
 
-### Control path
+The [overview at the top](#-lgtv-mcp) shows the whole system. **[docs/architecture.md](docs/architecture.md)** has a diagram for each part:
 
-```mermaid
-flowchart LR
-    subgraph Mac["🖥️ Mac mini"]
-        CC["Claude Code"]
-        CD["Claude desktop"]
-        S["lgtv-mcp<br/>server.py · 30 tools"]
-        T["TV manager<br/>tv.py"]
-        CFG[("~/.config/lgtv/<br/>config.json")]
-        CC -- "stdio (MCP)" --> S
-        CD -- "stdio (MCP)" --> S
-        S --> T
-        T <--> CFG
-    end
-    subgraph Home["🏠 Home Wi-Fi"]
-        TV["📺 LG webOS TV"]
-    end
-    T -- "SSAP over wss :3001<br/>commands + live state" --> TV
-    T -. "Wake-on-LAN (UDP :9)" .-> TV
-    T -. "SSDP discovery (UDP :1900)" .-> TV
-```
-
-### Morning briefing
-
-```mermaid
-flowchart TB
-    subgraph Mac["🖥️ Mac mini"]
-        L1["⏰ launchd<br/>local.lgtv.briefing<br/>Mon–Fri 07:30"]
-        L2["launchd<br/>local.lgtv.briefing.server"]
-        R["briefing run<br/>show.py"]
-        W["page server :8765<br/>web.py · page.py"]
-        G["gather()<br/>sources.py"]
-        K[("🔐 Keychain<br/>iCal secret address")]
-        LOG[["~/Library/Logs/<br/>lg-tv-briefing.log"]]
-        L1 --> R
-        L2 --> W
-        R --> G
-        W --> G
-        G --> K
-        R --> LOG
-        W --> LOG
-    end
-    subgraph Net["☁️ Internet"]
-        GC["Google Calendar"]
-        OM["Open-Meteo"]
-        RSS["The Hindu · BBC RSS"]
-    end
-    G --> GC & OM & RSS
-    R -- "power on · busy check ·<br/>open browser · toast · auto-off" --> TV["📺 TV"]
-    TV -- "GET / every 5 min<br/>(only the TV and this Mac allowed)" --> W
-```
-
-### One scheduled run
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant L as launchd (07:30)
-    participant R as briefing run
-    participant TV as LG TV
-    participant W as page server
-    L->>R: start
-    R->>R: gather calendar, weather, headlines
-    alt TV off
-        R->>TV: Wake-on-LAN / turnOn
-    else TV busy (playing, Live TV, an app)
-        R->>TV: toast "Morning briefing: …"
-        Note over R,TV: done, screen left alone
-    end
-    R->>TV: launch browser → http://mac:8765/
-    TV->>W: GET /
-    R->>W: poll /api/views
-    W-->>R: TV loaded the page ✓
-    alt page never loads
-        R->>TV: fallback toasts
-    end
-    R->>R: wait 30 min
-    R->>TV: still showing the page? → power off
-```
+| Diagram | What it shows |
+|---|---|
+| [Control path](docs/architecture.md#control-path) | Claude → `lgtv-mcp` over stdio → `tv.py` → the TV over SSAP, with Wake-on-LAN and SSDP rediscovery |
+| [Movie night](docs/architecture.md#movie-night) | `/movienight`: Screenward shortlist → `play_title` → Wikidata id → deep link → playing |
+| [Morning briefing](docs/architecture.md#morning-briefing) | The two launchd agents, the page server, the data sources and the Keychain |
+| [One scheduled run](docs/architecture.md#one-scheduled-run) | What happens at 07:30: pause check, busy check, page or toasts, auto-off |
+| [Briefing controls](docs/architecture.md#briefing-controls) | Pause, resume, status and restart from chat or the command line |
 
 ### Project layout
 
