@@ -525,6 +525,66 @@ async def screenshot() -> Image:
     return Image(path=path)
 
 
+@mcp.tool(structured_output=False)  # returns text + an image
+@tv_tool
+async def capture_scene(
+    note: Annotated[str | None, Field(description="What makes the scene interesting, in the user's words")] = None,
+    keep_paused: Annotated[bool, Field(description="Leave playback paused after the capture")] = False,
+) -> list[Any]:
+    """Mark the scene on screen: capture it, pause and capture again, save a scene card, resume.
+
+    Returns the card plus two images: "moment" (the instant itself: a clean frame, or the subtitle line
+    in streaming apps) and "paused" (the player bar with title and timecode).
+
+    Streaming apps (Netflix, Prime Video) capture as black apart from their text: the subtitle line and,
+    when paused, the player bar with title and timecode. YouTube and HDMI (set-top box) capture the full
+    picture; HDMI can't be paused, so it's captured once, as is. After this, read the images and call
+    annotate_scene with the timecode, the dialogue line and a short description of what you see.
+    """
+    import json
+
+    from .scenes import capture_scene as _capture
+
+    client = await _tv_on()
+    card, images = await _capture(client, note, keep_paused)
+    out: list[Any] = [json.dumps(card, ensure_ascii=False, indent=1)]
+    for kind, path in images.items():
+        out += [f"{kind} capture:", Image(path=path)]
+    return out
+
+
+@mcp.tool()
+async def annotate_scene(
+    scene_id: Annotated[str, Field(description="The id capture_scene returned")],
+    timecode: Annotated[str | None, Field(description="Position read from the capture, e.g. 02:48 / 1:51:09")] = None,
+    dialogue: Annotated[str | None, Field(description="Subtitle line(s) read from the capture")] = None,
+    description: Annotated[str | None, Field(description="What the capture shows (for full frames: setting, people, framing)")] = None,
+    title: Annotated[str | None, Field(description="Film or show, if the card doesn't have it yet")] = None,
+    tmdb_id: Annotated[int | None, Field(description="TMDB id, if known")] = None,
+    note: Annotated[str | None, Field(description="Replace the user's note")] = None,
+    photo: Annotated[str | None, Field(description="Path to the user's own photo of the frame, to keep with the card")] = None,
+) -> dict[str, Any]:
+    """Fill in a scene card after capture_scene: what the capture says and shows."""
+    from .scenes import annotate_scene as _annotate
+
+    try:
+        return _annotate(scene_id, timecode=timecode, dialogue=dialogue, description=description,
+                         title=title, tmdb_id=tmdb_id, note=note, photo=photo)
+    except KeyError as e:
+        raise ToolError(f"No scene {scene_id!r}. Use list_scenes to see the ids.") from e
+
+
+@mcp.tool()
+async def list_scenes(
+    title: Annotated[str | None, Field(description="Only scenes whose title or note contains this")] = None,
+    limit: Annotated[int, Field(ge=1, le=200)] = 20,
+) -> list[dict[str, Any]]:
+    """Saved scene cards, newest first (title, timecode, dialogue, note, image paths) for recreating scenes."""
+    from .scenes import list_scenes as _list
+
+    return _list(title, limit)
+
+
 @mcp.tool()
 @tv_tool
 async def show_briefing(

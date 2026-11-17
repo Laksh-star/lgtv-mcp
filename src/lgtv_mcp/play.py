@@ -377,14 +377,15 @@ async def play_title(client, *, title: str | None, tmdb_id: int | None, media_ty
         result["note"] = (f"{spec.name} has no working deep link on this TV, so it was opened with a toast; "
                           "use the app's search to start it." if not spec.deep_link else
                           f"Opened {spec.name} without a content id.")
-    _log_play(info.get("tmdb_id") or tmdb_id, media_type, name, spec.name, season, episode, result["status"])
+    _log_play(info.get("tmdb_id") or tmdb_id, media_type, name, spec.name, season, episode, result["status"],
+              app_id)
     return result
 
 
 HISTORY_FILE = titles.CONFIG_DIR / "watch_history.json"
 
 
-def _log_play(tmdb_id, media_type, name, app_name, season, episode, status) -> None:
+def _log_play(tmdb_id, media_type, name, app_name, season, episode, status, app_id=None) -> None:
     """Append to ~/.config/lgtv/watch_history.json (used by /movienight to skip recent picks)."""
     try:
         try:
@@ -392,7 +393,7 @@ def _log_play(tmdb_id, media_type, name, app_name, season, episode, status) -> N
         except (OSError, json.JSONDecodeError):
             hist = []
         hist.append({"at": datetime.now().isoformat(timespec="seconds"), "tmdb_id": tmdb_id,
-                     "media_type": media_type, "title": name, "app": app_name,
+                     "media_type": media_type, "title": name, "app": app_name, "app_id": app_id,
                      "season": season, "episode": episode, "status": status})
         titles.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         HISTORY_FILE.write_text(json.dumps(hist[-500:], indent=2, ensure_ascii=False) + "\n")

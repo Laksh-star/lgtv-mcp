@@ -10,10 +10,10 @@
 [![aiowebostv](https://img.shields.io/badge/aiowebostv-1.1-41BDF5?logo=homeassistant&logoColor=white)](https://github.com/home-assistant-libs/aiowebostv)
 [![webOS 25](https://img.shields.io/badge/LG%20webOS-25-A50034)](https://webostv.developer.lge.com/)
 [![macOS](https://img.shields.io/badge/runs%20on-macOS-000000?logo=apple&logoColor=white)](#)
-[![Tools](https://img.shields.io/badge/MCP%20tools-23-2EA44F)](#-tools)
+[![Tools](https://img.shields.io/badge/MCP%20tools-26-2EA44F)](#-tools)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[Quick start](#-quick-start) · [Tools](#-tools) · [Movie night](#-movie-night) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Privacy](#-privacy-and-security) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
+[Quick start](#-quick-start) · [Tools](#-tools) · [Movie night](#-movie-night) · [Scene capture](#-scene-capture) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Privacy](#-privacy-and-security) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
 
 </div>
 
@@ -101,6 +101,7 @@ Then just ask: *"Turn on the TV and play lofi hip hop on YouTube."*
 | 📡 Live TV | `channel_up` · `channel_down` | Opens Live TV if needed and reports the new channel |
 | 🎬 Movie night | `play_title` | Plays a movie or episode by TMDB id/title in Netflix or Prime Video (deep link + profile screen + Play), else opens the app with a toast. See [Movie night](#-movie-night) |
 | 📸 Screen | `screenshot` | What's on the TV right now, as an image (app UI; video frames come out black) |
+| 🎞️ Scenes | `capture_scene` · `annotate_scene` · `list_scenes` | Mark the scene on screen: two captures (the moment, then paused with title and timecode), saved as a scene card. See [Scene capture](#-scene-capture) |
 | 🕹️ Remote | `press_button` | HOME, BACK, OK, arrows, MENU, digits, colours… with `repeat` |
 | ⌨️ Text | `type_text` | Types into the focused field via the LG keyboard. YouTube ignores it, so use `youtube_search` there |
 | 💬 Notify | `show_toast` | On-screen notification bubble |
@@ -158,6 +159,29 @@ claude mcp add --scope user screenward -e TMDB_BASE_URL=https://api.tmdb.org/3 -
 
 > [!TIP]
 > On some Indian networks `api.themoviedb.org` resets most connections while `api.tmdb.org` (same API) answers every time. `TMDB_BASE_URL` points Screenward at it.
+
+## 🎞️ Scene capture
+
+Say **"mark this scene"** (with a note if you like) while something plays. `capture_scene`:
+
+1. captures the **moment**: the clean frame, or the subtitle line in a streaming app;
+2. pauses through the media API (confirmed `paused`) and captures again: the **player bar** with title and timecode;
+3. resumes, unless you asked for `keep_paused`;
+4. saves a scene card in `~/.config/lgtv/scenes/` with the title and TMDB id that `play_title` started, your note and both images.
+
+Claude reads the images and fills in the card with `annotate_scene` (timecode, dialogue, a description). `list_scenes` hands the cards to whatever recreates the scenes.
+
+What a TV capture can hold (tested 17 Nov 2026):
+
+| Source | Picture | Subtitles | Paused: title + timecode |
+|---|---|---|---|
+| Netflix | ❌ black (protected video) | ✅ | ✅ `Juror #2 · 03:39 / 1:50:17` |
+| Prime Video | ❌ black (protected video) | ✅ | ✅ `Sudani from Nigeria · 01:03 / 1:54:12` |
+| YouTube | ✅ full frame | – | ✅ title and position |
+| HDMI (set-top box) | ✅ full frame, channel graphics included | – | – (live, can't be paused from here) |
+| Live TV | black (no aerial channels tuned on this TV) | – | – |
+
+For a streaming film the card holds the words and the exact moment; add your own photo of the frame with `annotate_scene(photo=...)`, or use the poster from Screenward (`tmdb:///movie/<id>`).
 
 ## 🌅 Morning briefing
 
@@ -256,7 +280,7 @@ flowchart LR
     subgraph Mac["🖥️ Mac mini"]
         CC["Claude Code"]
         CD["Claude desktop"]
-        S["lgtv-mcp<br/>server.py · 23 tools"]
+        S["lgtv-mcp<br/>server.py · 26 tools"]
         T["TV manager<br/>tv.py"]
         CFG[("~/.config/lgtv/<br/>config.json")]
         CC -- "stdio (MCP)" --> S
@@ -335,8 +359,9 @@ sequenceDiagram
 ```text
 lg-tv/
 ├── src/lgtv_mcp/
-│   ├── server.py              # MCP server: 23 tools, error handling
+│   ├── server.py              # MCP server: 26 tools, error handling
 │   ├── play.py                # play_title: app table, deep links, profile screen / Play, screen capture
+│   ├── scenes.py              # capture_scene / annotate_scene / list_scenes: scene cards
 │   ├── titles.py              # TMDB id -> Netflix / Prime / JioHotstar ids via Wikidata, with a cache
 │   ├── tv.py                  # connection, SSDP rediscovery, pairing, Wake-on-LAN, ensure_on()
 │   ├── pair.py                # `lgtv-pair` CLI
@@ -360,7 +385,7 @@ Everything runs on your Mac and your home network. There is no cloud relay, and 
 - **Calendar:** the Google Calendar secret iCal address stays in the macOS Keychain. It grants read access to your calendar without a login, so if it ever leaks, reset it in Google Calendar settings.
 - **Briefing page:** served on your LAN only, and the server answers just the TV, this Mac and any `allow_ips` you add. Don't port-forward it from your router.
 - **What leaves the house:** weather requests to Open-Meteo (your configured coordinates), RSS fetches to the feeds you list, and the calendar fetch to Google, and `play_title`'s Wikidata lookups (a TMDB id or title, nothing about you). Claude sees whatever its tools return, such as app lists and your calendar events in a briefing.
-- **Movie night:** `~/.config/lgtv/` also holds the title id cache, a play history (`watch_history.json`) and the latest screen captures (`captures/`). Captures can show your streaming profiles' names and avatars, so don't commit or share them.
+- **Movie night:** `~/.config/lgtv/` also holds the title id cache, a play history (`watch_history.json`), the latest screen captures (`captures/`) and your scene cards (`scenes/`). Captures can show your streaming profiles' names and avatars, so don't commit or share them.
 - **Not in this repo:** your TV's IP and MAC, the pairing key, the calendar address and your `briefing.toml`. Keep it that way if you fork it.
 
 ## 🧪 Compatibility
