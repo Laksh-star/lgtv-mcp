@@ -105,7 +105,7 @@ Then just ask: *"Turn on the TV and play lofi hip hop on YouTube."*
 | 🕹️ Remote | `press_button` | HOME, BACK, OK, arrows, MENU, digits, colours… with `repeat` |
 | ⌨️ Text | `type_text` | Types into the focused field via the LG keyboard. YouTube ignores it, so use `youtube_search` there |
 | 💬 Notify | `show_toast` | On-screen notification bubble |
-| 🌅 Briefing | `show_briefing` | Shows the morning briefing now, turning the TV on if needed |
+| 🌅 Briefing | `show_briefing` · `briefing_status` · `pause_briefing` · `resume_briefing` · `restart_briefing_server` | Show it now, check the schedule and last run, skip days, resume, restart the page server. See [Controlling it from chat](#controlling-it-from-chat) |
 
 ### Opening a specific title
 
@@ -213,12 +213,30 @@ uv run briefing now                 # show it now, using the 07:30 rules (a toas
 uv run briefing now --force         # take over the screen anyway
 uv run briefing now --auto-off 1    # also test the auto turn-off after 1 minute
 uv run briefing preview             # render the page to ~/Library/Caches/lg-tv-briefing/preview.html
-uv run briefing status              # agents, Keychain check, wake schedule, recent log lines
+uv run briefing pause               # skip the next scheduled briefing (today's if it hasn't run yet)
+uv run briefing pause --days 3      # skip the next 3
+uv run briefing pause --until 2026-12-31   # skip every briefing through that date
+uv run briefing pause --indefinitely       # skip them all until you resume
+uv run briefing resume              # end a pause
+uv run briefing restart             # restart the page server
+uv run briefing status              # pause state, next briefing, agents, Keychain check, wake schedule, log
 uv run briefing install             # (re)install the launchd agents from the settings file
 uv run briefing uninstall           # turn the briefing off
 ```
 
-From Claude, say ***"show my briefing on the TV"***, which uses the `show_briefing` tool.
+### Controlling it from chat
+
+Any Claude chat with the `lgtv` server connected (the desktop app or Claude Code) can run the briefing:
+
+| Say | Tool |
+| --- | --- |
+| *"Show my briefing on the TV"* | `show_briefing` |
+| *"Is the briefing on tomorrow?"* / *"How did this morning's briefing go?"* | `briefing_status` |
+| *"No briefing tomorrow"* / *"Skip the next three"* / *"Pause it until 2 Jan"* / *"Pause it until I say so"* | `pause_briefing` |
+| *"Turn the briefing back on"* | `resume_briefing` |
+| *"The briefing page isn't loading, restart it"* | `restart_briefing_server` |
+
+A pause is the last date to skip, kept in `~/.config/lgtv/briefing-state.json`. The 07:30 job still fires but exits straight away, and the pause ends by itself after that date. The Mac still wakes at 07:25. Changing the time or days still means editing `briefing.toml` and running `uv run briefing install` (plus a new `pmset` line).
 
 ### Calendar setup (once)
 
@@ -280,7 +298,7 @@ flowchart LR
     subgraph Mac["🖥️ Mac mini"]
         CC["Claude Code"]
         CD["Claude desktop"]
-        S["lgtv-mcp<br/>server.py · 26 tools"]
+        S["lgtv-mcp<br/>server.py · 30 tools"]
         T["TV manager<br/>tv.py"]
         CFG[("~/.config/lgtv/<br/>config.json")]
         CC -- "stdio (MCP)" --> S
@@ -359,14 +377,15 @@ sequenceDiagram
 ```text
 lg-tv/
 ├── src/lgtv_mcp/
-│   ├── server.py              # MCP server: 26 tools, error handling
+│   ├── server.py              # MCP server: 30 tools, error handling
 │   ├── play.py                # play_title: app table, deep links, profile screen / Play, screen capture
 │   ├── scenes.py              # capture_scene / annotate_scene / list_scenes: scene cards
 │   ├── titles.py              # TMDB id -> Netflix / Prime / JioHotstar ids via Wikidata, with a cache
 │   ├── tv.py                  # connection, SSDP rediscovery, pairing, Wake-on-LAN, ensure_on()
 │   ├── pair.py                # `lgtv-pair` CLI
 │   └── briefing/
-│       ├── cli.py             # `briefing now|run|serve|preview|install|uninstall|status`
+│       ├── cli.py             # `briefing now|run|pause|resume|restart|serve|preview|install|uninstall|status`
+│       ├── control.py         # pause/resume state, next-briefing date, status, page server restart
 │       ├── config.py          # briefing.toml, Keychain lookup, rotating log
 │       ├── sources.py         # iCal (recurrence/timezones), Open-Meteo, RSS; each fails on its own
 │       ├── page.py            # 1080p TV page (dark, large type, 5-min refresh, live clock)

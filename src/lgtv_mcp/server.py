@@ -603,6 +603,73 @@ async def show_briefing(
     return await show(tv, load_config(), take_over=take_over)
 
 
+def _briefing_ctx():
+    from datetime import datetime
+
+    from .briefing import control
+    from .briefing.config import load_config, setup_logging
+
+    cfg = load_config()
+    return control, cfg, datetime.now(cfg.tz), setup_logging()
+
+
+@mcp.tool()
+async def briefing_status() -> dict[str, Any]:
+    """The weekday morning briefing's schedule, whether it's paused, when the next one is,
+    whether its background jobs are running, and how the last run went."""
+    control, cfg, now, _ = _briefing_ctx()
+    return await asyncio.to_thread(control.status, cfg, now)
+
+
+@mcp.tool()
+async def pause_briefing(
+    briefings: Annotated[int, Field(ge=1, le=60, description="How many upcoming scheduled briefings to skip. "
+                                    "1 = just the next one (today's if it hasn't run yet, otherwise the next day's)")] = 1,
+    until: Annotated[str | None, Field(description="Instead of a count: skip every briefing through this date, "
+                                       "YYYY-MM-DD (e.g. holidays)")] = None,
+    indefinitely: Annotated[bool, Field(description="Skip all briefings until resume_briefing is called")] = False,
+) -> str:
+    """Pause the scheduled morning briefing, e.g. "no briefing tomorrow" or "pause it while I'm away".
+
+    Skipping more briefings while already paused extends the pause. Doesn't affect show_briefing.
+    """
+    from datetime import date
+
+    control, cfg, now, log = _briefing_ctx()
+    try:
+        day = date.fromisoformat(until) if until else None
+    except ValueError as e:
+        raise ToolError(f"'{until}' isn't a date; use YYYY-MM-DD.") from e
+    try:
+        msg = control.pause(cfg, now, briefings=briefings, until=day, indefinitely=indefinitely)
+    except ValueError as e:
+        raise ToolError(str(e)) from e
+    log.info("pause: %s (through the pause_briefing tool)", msg)
+    return msg
+
+
+@mcp.tool()
+async def resume_briefing() -> str:
+    """End a pause so the scheduled morning briefing runs again from its next slot."""
+    control, cfg, now, log = _briefing_ctx()
+    msg = control.resume(cfg, now)
+    log.info("resume: %s (through the resume_briefing tool)", msg)
+    return msg
+
+
+@mcp.tool()
+async def restart_briefing_server() -> str:
+    """Restart the background web server that serves the briefing page to the TV.
+    Use it if briefing_status shows the page server isn't running, or the TV shows the page as unreachable."""
+    control, _cfg, _now, log = _briefing_ctx()
+    try:
+        msg = await asyncio.to_thread(control.restart_server)
+    except RuntimeError as e:
+        raise ToolError(str(e)) from e
+    log.info("restart: page server restarted through the restart_briefing_server tool")
+    return msg
+
+
 def main() -> None:
     mcp.run()
 

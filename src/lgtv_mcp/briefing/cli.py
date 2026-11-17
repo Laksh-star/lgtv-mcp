@@ -1,4 +1,4 @@
-"""`briefing` command: now | run | serve | preview | install | uninstall | status."""
+"""`briefing` command: now | run | pause | resume | restart | serve | preview | install | uninstall | status."""
 
 from __future__ import annotations
 
@@ -9,17 +9,17 @@ import plistlib
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from ..tv import TV, TVError
+from . import control
 from .config import CONFIG_FILE, LOG_FILE, calendar_url, ensure_config_file, load_config, setup_logging
+from .control import RUN_LABEL, SERVER_LABEL
 from .show import show
 
 PROJECT_DIR = Path(__file__).resolve().parents[3]
 AGENTS = Path.home() / "Library/LaunchAgents"
-SERVER_LABEL = "local.lgtv.briefing.server"
-RUN_LABEL = "local.lgtv.briefing"
 STDERR_LOG = Path.home() / "Library/Logs/lg-tv-briefing.launchd.log"
 PMSET_DAYS = "MTWRFSU"  # pmset weekday letters, Monday first
 
@@ -62,8 +62,40 @@ def cmd_run(_a) -> int:
     if datetime.now(cfg.tz).isoweekday() not in cfg.weekdays:
         log.info("run: today isn't a briefing day, skipping")
         return 0
+    if until := control.paused_through(datetime.now(cfg.tz).date()):
+        log.info("run: briefing paused %s, skipping",
+                 "until resumed" if until == control.FOREVER else f"through {until:%Y-%m-%d}")
+        return 0
     log.info("run: scheduled briefing started")
     return asyncio.run(_show(take_over=False, auto_off=cfg.auto_off_minutes))
+
+
+def cmd_pause(a) -> int:
+    cfg = load_config()
+    now = datetime.now(cfg.tz)
+    try:
+        msg = control.pause(cfg, now, briefings=a.days, until=a.until, indefinitely=a.indefinitely)
+    except ValueError as e:
+        sys.exit(str(e))
+    setup_logging().info("pause: %s (from the command line)", msg)
+    print(msg)
+    return 0
+
+
+def cmd_resume(_a) -> int:
+    cfg = load_config()
+    msg = control.resume(cfg, datetime.now(cfg.tz))
+    setup_logging().info("resume: %s (from the command line)", msg)
+    print(msg)
+    return 0
+
+
+def cmd_restart(_a) -> int:
+    try:
+        print(control.restart_server())
+    except RuntimeError as e:
+        sys.exit(str(e))
+    return 0
 
 
 def cmd_serve(_a) -> int:
@@ -100,8 +132,7 @@ def _plist(label: str, args: list[str], **extra) -> dict:
     }
 
 
-def _launchctl(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["launchctl", *args], capture_output=True, text=True, check=False)
+_launchctl = control.launchctl
 
 
 def _load(label: str, data: dict) -> None:
@@ -150,11 +181,12 @@ def cmd_uninstall(_a) -> int:
 
 def cmd_status(_a) -> int:
     cfg = load_config()
-    for label in (SERVER_LABEL, RUN_LABEL):
-        r = _launchctl("print", f"gui/{os.getuid()}/{label}")
-        state = next((ln.split("=", 1)[1].strip() for ln in r.stdout.splitlines() if ln.strip().startswith("state =")), None)
-        print(f"{label}: {'not installed' if r.returncode else state or 'loaded'}")
-    print(f"Schedule: weekdays {cfg.weekdays} at {cfg.time}, auto-off after {cfg.auto_off_minutes} min")
+    st = control.status(cfg, datetime.now(cfg.tz))
+    print(f"{SERVER_LABEL}: {st['page_server']}")
+    print(f"{RUN_LABEL}: {st['scheduler']}")
+    print(f"Schedule: {st['schedule']}")
+    print(f"Paused: {st['paused'] or 'no'}")
+    print(f"Next briefing: {st['next_briefing']}")
     print(f"Calendar address in Keychain ({cfg.keychain_service}): {'yes' if calendar_url(cfg) else 'NO (see README)'}")
     print(f"Settings: {CONFIG_FILE}{'' if CONFIG_FILE.exists() else ' (not created yet, using defaults)'}")
     sched = subprocess.run(["pmset", "-g", "sched"], capture_output=True, text=True).stdout.strip()
@@ -172,6 +204,13 @@ def main() -> None:
     n.add_argument("--force", action="store_true", help="take over the screen even if something is playing")
     n.add_argument("--auto-off", type=int, default=0, metavar="MIN", help="turn the TV off after MIN minutes if still showing")
     sub.add_parser("run", help="the scheduled run (used by launchd)")
+    ps = sub.add_parser("pause", help="skip upcoming scheduled briefings")
+    g = ps.add_mutually_exclusive_group()
+    g.add_argument("--days", type=int, default=1, metavar="N", help="skip the next N scheduled briefings (default 1)")
+    g.add_argument("--until", type=date.fromisoformat, metavar="YYYY-MM-DD", help="skip every briefing through this date")
+    g.add_argument("--indefinitely", action="store_true", help="skip them all until `briefing resume`")
+    sub.add_parser("resume", help="end a pause")
+    sub.add_parser("restart", help="restart the page server")
     sub.add_parser("serve", help="run the page server (used by launchd)")
     pv = sub.add_parser("preview", help="render the page to a local HTML file")
     pv.add_argument("--out", default="~/Library/Caches/lg-tv-briefing/preview.html")
@@ -179,7 +218,8 @@ def main() -> None:
     sub.add_parser("uninstall", help="remove the launchd jobs (disables the briefing)")
     sub.add_parser("status", help="show what's installed and recent log lines")
     a = p.parse_args()
-    handlers = {"now": cmd_now, "run": cmd_run, "serve": cmd_serve, "preview": cmd_preview,
+    handlers = {"now": cmd_now, "run": cmd_run, "pause": cmd_pause, "resume": cmd_resume, "restart": cmd_restart,
+                "serve": cmd_serve, "preview": cmd_preview,
                 "install": cmd_install, "uninstall": cmd_uninstall, "status": cmd_status}
     sys.exit(handlers[a.cmd](a))
 
