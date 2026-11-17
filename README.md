@@ -2,7 +2,7 @@
 
 # 📺 lgtv-mcp
 
-**Let Claude run your LG TV over the home network, and wake you up with a morning briefing on it.**
+**Let Claude run your LG TV over the home network, put on tonight's movie, and wake you up with a morning briefing.**
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/managed%20with-uv-DE5FE9?logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
@@ -10,10 +10,10 @@
 [![aiowebostv](https://img.shields.io/badge/aiowebostv-1.1-41BDF5?logo=homeassistant&logoColor=white)](https://github.com/home-assistant-libs/aiowebostv)
 [![webOS 25](https://img.shields.io/badge/LG%20webOS-25-A50034)](https://webostv.developer.lge.com/)
 [![macOS](https://img.shields.io/badge/runs%20on-macOS-000000?logo=apple&logoColor=white)](#)
-[![Tools](https://img.shields.io/badge/MCP%20tools-21-2EA44F)](#-tools)
+[![Tools](https://img.shields.io/badge/MCP%20tools-23-2EA44F)](#-tools)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[Quick start](#-quick-start) · [Tools](#-tools) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Privacy](#-privacy-and-security) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
+[Quick start](#-quick-start) · [Tools](#-tools) · [Movie night](#-movie-night) · [Morning briefing](#-morning-briefing) · [Architecture](#-architecture) · [Privacy](#-privacy-and-security) · [Troubleshooting](#-troubleshooting) · [Development](#-development)
 
 </div>
 
@@ -22,13 +22,14 @@
 A local [MCP](https://modelcontextprotocol.io) server that turns an LG webOS TV into something Claude can operate. Claude can:
 - power the TV on and off
 - open apps, YouTube videos and searches
+- play a movie or episode in Netflix or Prime Video by name, getting past the "Who's watching?" screen
 - change volume, inputs and channels
 - press remote buttons
 - show on-screen notifications
 
 It talks to the TV over webOS's SSAP websocket (secure port 3001) through [aiowebostv](https://github.com/home-assistant-libs/aiowebostv), the library Home Assistant uses. It also wakes the TV with Wake-on-LAN.
 
-On top of that sits a **weekday morning briefing**: date, weather, today's calendar and headlines on the big screen at 07:30.
+With [Screenward](https://github.com/Laksh-star/screenward) alongside, `/movienight` goes from "a Malayalam feel-good film for the family" to the film playing. On top of that sits a **weekday morning briefing**: date, weather, today's calendar and headlines on the big screen at 07:30.
 
 > Tested live on an **LG 55UT80406LA** (UT80, 2024), webOS 25 (10.3.2), from a Mac mini on the same Wi-Fi.
 
@@ -98,6 +99,8 @@ Then just ask: *"Turn on the TV and play lofi hip hop on YouTube."*
 | 📱 Apps | `list_apps` · `launch_app` · `close_app` | Launch by id or title, with `content_id`, `params`, `youtube_video`, `youtube_search` |
 | ▶️ Media | `media_control` | play · pause · stop · rewind · fast_forward |
 | 📡 Live TV | `channel_up` · `channel_down` | Opens Live TV if needed and reports the new channel |
+| 🎬 Movie night | `play_title` | Plays a movie or episode by TMDB id/title in Netflix or Prime Video (deep link + profile screen + Play), else opens the app with a toast. See [Movie night](#-movie-night) |
+| 📸 Screen | `screenshot` | What's on the TV right now, as an image (app UI; video frames come out black) |
 | 🕹️ Remote | `press_button` | HOME, BACK, OK, arrows, MENU, digits, colours… with `repeat` |
 | ⌨️ Text | `type_text` | Types into the focused field via the LG keyboard. YouTube ignores it, so use `youtube_search` there |
 | 💬 Notify | `show_toast` | On-screen notification bubble |
@@ -117,6 +120,44 @@ The app may stop at its "Who's watching?" profile screen first. Claude can't see
 
 > [!NOTE]
 > With **TV On With Mobile** enabled, the TV usually sits in *Active Standby* after `power_off`, and `power_on` brings it back in about a second. After a while it can drop off the network entirely. Then Wake-on-LAN wakes it in about 15 seconds. Tools that need a lit screen refuse in standby rather than "succeeding" against a dark TV.
+
+## 🎬 Movie night
+
+`play_title` takes a **TMDB id** (or a title), an optional app, and `season`/`episode` for a series:
+
+1. **Find the app's id.** Wikidata links TMDB ids to Netflix (P1874), Prime Video GTI (P14462) and JioHotstar (P11049) ids. No hit means `needs_lookup`: Claude web-searches the id and calls again with `app_content_id`. Every id is cached in `~/.config/lgtv/title_ids.json`.
+2. **Deep-link, only into an installed app** (`list_apps`).
+3. **Get it playing.** Netflix starts the film by itself, so OK is never pressed while something plays (it would pause it). Prime Video stops at "Who's watching?" and then the title page, so play_title presses OK for the profile, waits for the title page's trailer, then presses Play and checks that a new media session started.
+4. **Log it** to `~/.config/lgtv/watch_history.json`, which `/movienight` uses to skip recent picks.
+
+### Deep links on this TV (tested 17 Nov 2026)
+
+| App | webOS id | Deep link | Launch payload / behaviour |
+|---|---|---|---|
+| Netflix | `netflix` | ✅ plays | `contentId: m=https://www.netflix.com/watch/<id>&source_type=4`. Starts the film behind an info overlay, about 6–20 s after launch. A show id starts or resumes the next-up episode |
+| Prime Video | `amazon` | ✅ plays | `contentId: amzn1.dv.gti.<uuid>` (GTI only; a short `0PKD430…` detail id opens Home). Profile picker → title page → Play. Ads may play first |
+| YouTube | `youtube.leanback.v4` | ✅ | `params.contentTarget: https://www.youtube.com/tv?v=<id>`, or a `"<title> full movie"` search |
+| JioHotstar | `hotstar` | ❌ | Bare id, full URL, `hotstar://content/<id>`, `params.contentTarget`, `params.contentId`: all land on Home. Opened with a toast |
+| ZEE5 | `com.zee5.app` | ❌ | Bare id, full URL, `params.contentTarget`: black screen with a spinner. Opened with a toast |
+
+Netflix episode ids aren't on Wikidata or public pages, so an episode request opens the show (the tool says so in `note`). If `playback.result` is `not confirmed playing`, the reply includes a screen capture to look at. Full notes and every screen capture from the tests are in [`field-notes/2026-11-17-movie-night`](field-notes/2026-11-17-movie-night/FIELD_NOTES.md).
+
+### `/movienight`
+
+[`.claude/skills/movienight/SKILL.md`](.claude/skills/movienight/SKILL.md) asks who's watching, the mood and the time available (only what you didn't already say). It checks which streaming apps the TV has and asks Screenward for a shortlist that streams in India on them. It shows 3 options with a one-line reason each, then calls `play_title` on the one you pick. Link it into your user skills to use it from anywhere:
+
+```bash
+ln -s "$PWD/.claude/skills/movienight" ~/.claude/skills/movienight
+```
+
+Screenward needs to be registered too:
+
+```bash
+claude mcp add --scope user screenward -e TMDB_BASE_URL=https://api.tmdb.org/3 -- /path/to/screenward/plugins/tmdb/scripts/run-server.sh
+```
+
+> [!TIP]
+> On some Indian networks `api.themoviedb.org` resets most connections while `api.tmdb.org` (same API) answers every time. `TMDB_BASE_URL` points Screenward at it.
 
 ## 🌅 Morning briefing
 
@@ -215,7 +256,7 @@ flowchart LR
     subgraph Mac["🖥️ Mac mini"]
         CC["Claude Code"]
         CD["Claude desktop"]
-        S["lgtv-mcp<br/>server.py · 21 tools"]
+        S["lgtv-mcp<br/>server.py · 23 tools"]
         T["TV manager<br/>tv.py"]
         CFG[("~/.config/lgtv/<br/>config.json")]
         CC -- "stdio (MCP)" --> S
@@ -294,7 +335,9 @@ sequenceDiagram
 ```text
 lg-tv/
 ├── src/lgtv_mcp/
-│   ├── server.py              # MCP server: 21 tools, error handling
+│   ├── server.py              # MCP server: 23 tools, error handling
+│   ├── play.py                # play_title: app table, deep links, profile screen / Play, screen capture
+│   ├── titles.py              # TMDB id -> Netflix / Prime / JioHotstar ids via Wikidata, with a cache
 │   ├── tv.py                  # connection, SSDP rediscovery, pairing, Wake-on-LAN, ensure_on()
 │   ├── pair.py                # `lgtv-pair` CLI
 │   └── briefing/
@@ -304,6 +347,8 @@ lg-tv/
 │       ├── page.py            # 1080p TV page (dark, large type, 5-min refresh, live clock)
 │       ├── web.py             # aiohttp server with an IP allowlist
 │       └── show.py            # busy check, browser launch + load confirmation, toasts, auto-off
+├── .claude/skills/movienight/  # /movienight skill (Screenward + play_title)
+├── field-notes/                # live test notes and TV screen captures
 └── scripts/
     └── install_claude_desktop.py
 ```
@@ -315,7 +360,8 @@ Everything runs on your Mac and your home network. There is no cloud relay, and 
 - **Pairing key:** `~/.config/lgtv/config.json` (mode 0600). Anyone with this key on your network can control the TV, so treat it like a password. Delete it and run `uv run lgtv-pair --force` to re-pair; you can also remove the paired device on the TV.
 - **Calendar:** the Google Calendar secret iCal address stays in the macOS Keychain. It grants read access to your calendar without a login, so if it ever leaks, reset it in Google Calendar settings.
 - **Briefing page:** served on your LAN only, and the server answers just the TV, this Mac and any `allow_ips` you add. Don't port-forward it from your router.
-- **What leaves the house:** weather requests to Open-Meteo (your configured coordinates), RSS fetches to the feeds you list, and the calendar fetch to Google. Claude sees whatever its tools return, such as app lists and your calendar events in a briefing.
+- **What leaves the house:** weather requests to Open-Meteo (your configured coordinates), RSS fetches to the feeds you list, and the calendar fetch to Google, and `play_title`'s Wikidata lookups (a TMDB id or title, nothing about you). Claude sees whatever its tools return, such as app lists and your calendar events in a briefing.
+- **Movie night:** `~/.config/lgtv/` also holds the title id cache, a play history (`watch_history.json`) and the latest screen captures (`captures/`). Captures can show your streaming profiles' names and avatars, so don't commit or share them.
 - **Not in this repo:** your TV's IP and MAC, the pairing key, the calendar address and your `briefing.toml`. Keep it that way if you fork it.
 
 ## 🧪 Compatibility
@@ -336,6 +382,8 @@ Issues are welcome. Please include your TV model, webOS version and the relevant
 | `lgtv` is missing from the desktop app's Connectors | Cmd+Q the app, run `scripts/install_claude_desktop.py`, then reopen |
 | The briefing shows "Calendar unavailable" | `uv run briefing status` shows whether the Keychain item was found. The log gives the reason, e.g. an address Google has reset |
 | The briefing came as toasts, not a page | Check `briefing.server` is `running` in `uv run briefing status`, and read the log for "never loaded" |
+| `play_title` says `needs_lookup` | Wikidata has no id for that app. Claude can web-search it (`id_hint` says what to look for) and pass `app_content_id`. Or use `open_without_id: true` |
+| A Netflix title opens on a page with **Remind Me** | It isn't streaming in India. Check `find_where_to_watch` in Screenward |
 | Pairing prompt timed out | `uv run lgtv-pair --force`, then press OK on the TV within 60 s |
 
 **Fixed IP (optional):** reserve the TV's IP for its MAC address (both in `~/.config/lgtv/config.json`) under *DHCP reservation* in your router's admin page.

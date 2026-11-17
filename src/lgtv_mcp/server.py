@@ -17,7 +17,7 @@ from aiowebostv.exceptions import (
     WebOsTvCommandTimeoutError,
     WebOsTvServiceNotFoundError,
 )
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import Image, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
@@ -477,6 +477,52 @@ async def channel_up() -> str:
 async def channel_down() -> str:
     """Previous Live TV channel (opens Live TV first if another app is showing)."""
     return await _step_channel(False)
+
+
+@mcp.tool()
+@tv_tool
+async def play_title(
+    title: Annotated[str | None, Field(description="Movie or series name (used for the toast and, without tmdb_id, the lookup)")] = None,
+    tmdb_id: Annotated[int | None, Field(description="TMDB id (from Screenward); the most reliable way to identify the title")] = None,
+    media_type: Annotated[Literal["movie", "tv"], Field(description="movie, or tv for a series")] = "movie",
+    app: Annotated[str | None, Field(description="Preferred app: netflix, prime, hotstar, zee5 or youtube. Omit to pick the first installed app with a known id")] = None,
+    season: Annotated[int | None, Field(ge=0, description="Season number (tv)")] = None,
+    episode: Annotated[int | None, Field(ge=1, description="Episode number within the season (tv)")] = None,
+    app_content_id: Annotated[str | None, Field(description="The app's own id for this title/episode, e.g. found by web search after a needs_lookup reply. Requires app; it is cached")] = None,
+    open_without_id: Annotated[bool, Field(description="If no id is known, open the app anyway and show the title as a toast")] = False,
+    profile_ok: Annotated[bool, Field(description="After a deep link, get past a profile screen and press Play where the app needs it (OK presses)")] = True,
+    profile_delay: Annotated[float, Field(ge=1, le=60, description="Max seconds to wait for playback before pressing OK (cold starts take ~20 s)")] = 25,
+) -> dict[str, Any]:
+    """Play a movie or TV episode in a streaming app on the TV (Netflix, Prime Video, JioHotstar, ZEE5, YouTube).
+
+    Looks up the app's content id on Wikidata from the TMDB id (cached in ~/.config/lgtv/title_ids.json)
+    and deep-links into it; only installed apps are used. Returns status:
+    - deep_linked: launched into the title; "playback" reports the profile-screen / Play handling
+      (result "playing" or "not confirmed playing" with a screen capture to look at)
+    - opened_app: the app has no working deep link here, so it was opened with the title in a toast
+    - needs_lookup: no id known; web-search it using id_hint and call again with app + app_content_id
+      (or open_without_id=true)
+    - not_installed / unknown_app
+    """
+    from .play import play_title as _play
+
+    client = await _tv_on()
+    return await _play(client, title=title, tmdb_id=tmdb_id, media_type=media_type, app=app,
+                       season=season, episode=episode, app_content_id=app_content_id,
+                       open_without_id=open_without_id, profile_ok=profile_ok, profile_delay=profile_delay)
+
+
+@mcp.tool()
+@tv_tool
+async def screenshot() -> Image:
+    """Capture what's on the TV screen (apps and menus; video frames come out black) to check on it."""
+    from .play import capture_screen
+
+    client = await _tv_on()
+    path = await capture_screen(client, "screenshot")
+    if not path:
+        raise ToolError("The TV didn't return a screen capture.")
+    return Image(path=path)
 
 
 @mcp.tool()
