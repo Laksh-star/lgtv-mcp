@@ -248,35 +248,60 @@ class TV:
             await asyncio.sleep(0.3)
 
     async def ensure_on(self, timeout: float = 30) -> str:
-        """Turn the TV on (Wake-on-LAN, plus SSAP turnOn from standby) and wait until it is on."""
+        """Turn the TV on (Wake-on-LAN, plus SSAP turnOn from standby) and wait until it is on.
+
+        Keeps resending Wake-on-LAN while the TV is off the network, and turnOn every few seconds
+        while it sits in standby (one request is sometimes ignored). The error says which stage failed.
+        """
         if self.client is not None and self.client.is_connected() and self.client.tv_state.is_on:
             return "The TV is already on."
         await self.wake()
         loop = asyncio.get_running_loop()
-        deadline = loop.time() + timeout
-        tried_ssap = False
+        start = loop.time()
+        deadline = start + timeout
+        wol_sent, turn_on_sent = 1, 0
+        reachable_at: float | None = None  # when port 3001 first answered
+        standby_state: str | None = None   # last standby state the TV reported
+        last_turn_on = -1e9
+        connect_error: str | None = None
         while loop.time() < deadline:
             if self.host and await port_open(self.host, timeout=1):
+                if reachable_at is None:
+                    reachable_at = loop.time() - start
                 try:
                     client = await self.connect()
-                except TVError:
+                except TVError as e:
+                    connect_error = str(e)
                     await asyncio.sleep(1.5)
                     continue
-                if client.tv_state.is_on:
-                    return f"The TV is on ({client.tv_state.power_state.get('state', 'On')})."
-                if not tried_ssap:  # reachable but in standby: ask it to turn on
-                    tried_ssap = True
+                s = client.tv_state
+                if s.is_on:
+                    return (f"The TV is on ({s.power_state.get('state', 'On')}) after "
+                            f"{loop.time() - start:.0f} s.")
+                standby_state = (s.power_state or {}).get("state") or "standby"
+                if loop.time() - last_turn_on >= 5:  # reachable but in standby: ask it to turn on
+                    last_turn_on = loop.time()
+                    turn_on_sent += 1
                     try:
                         await client.power_on()
                     except Exception:  # noqa: BLE001 - not all states accept it
                         pass
             else:
                 await self.wake()
+                wol_sent += 1
             await asyncio.sleep(1.5)
-        raise TVUnavailable(
-            f"Sent Wake-on-LAN but the TV didn't come up within {timeout:.0f} s. Check that 'TV On With "
-            "Mobile' (Settings > General > Devices > External Devices) is enabled and the TV has power."
-        )
+
+        if reachable_at is None:
+            why = (f"it never answered on the network ({wol_sent} Wake-on-LAN bursts sent). It was probably "
+                   "fully powered down or unplugged. Check that 'TV On With Mobile' (Settings > General > "
+                   "Devices > External Devices) is on and the TV has power")
+        elif standby_state:
+            why = (f"it was on the network after {reachable_at:.0f} s but stayed in '{standby_state}' "
+                   f"despite {turn_on_sent} turn-on request{'s' if turn_on_sent != 1 else ''}")
+        else:
+            why = (f"it was on the network after {reachable_at:.0f} s but the connection kept failing"
+                   + (f" ({connect_error})" if connect_error else ""))
+        raise TVUnavailable(f"The TV didn't turn on within {timeout:.0f} s: {why}.")
 
     async def close(self) -> None:
         await self._drop_client()

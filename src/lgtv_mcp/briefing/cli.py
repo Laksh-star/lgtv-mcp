@@ -9,10 +9,11 @@ import plistlib
 import shutil
 import subprocess
 import sys
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from ..tv import TV, TVError
+from ..tv import TV, TVError, TVUnavailable
 from . import control
 from .config import CONFIG_FILE, LOG_FILE, calendar_url, ensure_config_file, load_config, setup_logging
 from .control import RUN_LABEL, SERVER_LABEL
@@ -22,6 +23,8 @@ PROJECT_DIR = Path(__file__).resolve().parents[3]
 AGENTS = Path.home() / "Library/LaunchAgents"
 STDERR_LOG = Path.home() / "Library/Logs/lg-tv-briefing.launchd.log"
 PMSET_DAYS = "MTWRFSU"  # pmset weekday letters, Monday first
+RETRY_AFTER = 120  # seconds before the scheduled run tries once more when the TV couldn't be reached
+EXIT_TV_UNREACHABLE = 2
 
 
 def _uv() -> str:
@@ -39,6 +42,10 @@ async def _show(take_over: bool, auto_off: int) -> int:
         msg = await show(tv, cfg, take_over=take_over, auto_off_minutes=auto_off)
         print(msg)
         return 0
+    except TVUnavailable as e:
+        log.error("run: TV problem: %s", e)
+        print(f"TV problem: {e}")
+        return EXIT_TV_UNREACHABLE
     except TVError as e:
         log.error("run: TV problem: %s", e)
         print(f"TV problem: {e}")
@@ -67,7 +74,15 @@ def cmd_run(_a) -> int:
                  "until resumed" if until == control.FOREVER else f"through {until:%Y-%m-%d}")
         return 0
     log.info("run: scheduled briefing started")
-    return asyncio.run(_show(take_over=False, auto_off=cfg.auto_off_minutes))
+    rc = asyncio.run(_show(take_over=False, auto_off=cfg.auto_off_minutes))
+    if rc == EXIT_TV_UNREACHABLE:
+        log.info("run: trying once more in %d s", RETRY_AFTER)
+        time.sleep(RETRY_AFTER)
+        log.info("run: second attempt started")
+        rc = asyncio.run(_show(take_over=False, auto_off=cfg.auto_off_minutes))
+        if rc != 0:
+            log.error("run: gave up for today; the briefing didn't reach the TV")
+    return rc
 
 
 def cmd_pause(a) -> int:

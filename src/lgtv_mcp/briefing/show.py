@@ -23,6 +23,7 @@ log = logging.getLogger("briefing")
 BROWSER = "com.webos.app.browser"
 IDLE_APPS = {None, "", "com.webos.app.home"}
 PAGE_LOAD_TIMEOUT = 45  # seconds for the TV browser to start and fetch the page
+WAKE_TIMEOUT = 90       # seconds to keep trying to turn the TV on (Wake-on-LAN from full power-off can be slow)
 
 
 def mac_lan_ip(tv_host: str) -> str:
@@ -90,7 +91,8 @@ def _describe(b: Briefing) -> str:
     return f"{ev}, {wx}, headlines: {news}"
 
 
-async def show(tv: TV, cfg: Config, *, take_over: bool, auto_off_minutes: int = 0) -> str:
+async def show(tv: TV, cfg: Config, *, take_over: bool, auto_off_minutes: int = 0,
+               wake_timeout: float = WAKE_TIMEOUT) -> str:
     """Show the briefing. take_over=False leaves a busy TV alone and only shows a notification."""
     b = await gather(cfg)
     log.info("run: data ready (%s)", _describe(b))
@@ -102,8 +104,8 @@ async def show(tv: TV, cfg: Config, *, take_over: bool, auto_off_minutes: int = 
         except TVUnavailable:
             client = None
     if client is None or not client.tv_state.is_on:
-        log.info("run: TV is off, turning it on")
-        await tv.ensure_on()
+        log.info("run: TV is off, turning it on (trying for up to %.0f s)", wake_timeout)
+        log.info("run: %s", await tv.ensure_on(timeout=wake_timeout))
         client = await tv.connect()
         await asyncio.sleep(4)  # let the home screen finish loading before opening the browser
     elif not take_over and (busy := _busy(client)):

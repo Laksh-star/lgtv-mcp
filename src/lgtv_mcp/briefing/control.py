@@ -145,7 +145,7 @@ def last_run(lines: int = 400) -> str | None:
     if not LOG_FILE.exists():
         return None
     keep = ("briefing page is on the TV", "showed a notification instead", "showed the briefing as notifications",
-            "couldn't show", "TV problem", "unexpected error", "skipping", "auto-off:")
+            "couldn't show", "TV problem", "unexpected error", "skipping", "auto-off:", "gave up")
     tail = LOG_FILE.read_text(errors="replace").splitlines()[-lines:]
     hits = [ln for ln in tail if any(k in ln for k in keep)]
     return hits[-1] if hits else None

@@ -126,7 +126,8 @@ sequenceDiagram
     end
     R->>R: gather calendar, weather, headlines
     alt TV off
-        R->>TV: Wake-on-LAN / turnOn
+        R->>TV: Wake-on-LAN / turnOn, repeated for up to 90 s
+        Note over R,TV: still off? try the whole run again in 2 min
     else TV busy (playing, Live TV, an app)
         R->>TV: toast "Morning briefing: …"
         Note over R,TV: done, screen left alone

@@ -209,6 +209,7 @@ Every weekday at **07:30** the TV shows a full-screen page, refreshed every 5 mi
 
 - **Auto turn-off:** if the page is still on screen after 30 minutes, the TV turns off. If someone switched to something else, it stays on.
 - **Fallback:** if the browser doesn't load the page, the briefing arrives as a few toasts instead.
+- **Waking the TV:** it keeps sending Wake-on-LAN, and asks a TV in standby to turn on every 5 s, for up to 90 s. If the TV still doesn't come on, the 07:30 run tries once more 2 minutes later. The log says which stage failed: no reply on the network, or stuck in standby.
 - **One source failing doesn't stop the rest:** that panel says "unavailable", and the log records why.
 
 ### Commands
@@ -358,6 +359,7 @@ Issues are welcome. Please include your TV model, webOS version and the relevant
 | A tool says the TV is off or unreachable while it's on | Check the Mac and the TV are on the same Wi-Fi. Run `get_status` again; it searches for the TV over SSDP if its IP changed |
 | `lgtv` is missing from the desktop app's Connectors | Cmd+Q the app, run `scripts/install_claude_desktop.py`, then reopen |
 | The briefing shows "Calendar unavailable" | `uv run briefing status` shows whether the Keychain item was found. The log gives the reason, e.g. an address Google has reset |
+| Nothing showed at 07:30 | `briefing_status` (or `uv run briefing status`) shows the last run. "Never answered on the network" means the TV was fully off: check *TV On With Mobile* and that it isn't switched off at the wall. "Stayed in standby" means it ignored the turn-on requests |
 | The briefing came as toasts, not a page | Check `briefing.server` is `running` in `uv run briefing status`, and read the log for "never loaded" |
 | `play_title` says `needs_lookup` | Wikidata has no id for that app. Claude can web-search it (`id_hint` says what to look for) and pass `app_content_id`. Or use `open_without_id: true` |
 | A Netflix title opens on a page with **Remind Me** | It isn't streaming in India. Check `find_where_to_watch` in Screenward |
