@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+    <channel>
+        <title>Sample title 1</title>
+        <description>Sample description 6</description>
+        <link>https://media.example/f11</link>
+        <image>
+            <url>https://media.example/f12.gif</url>
+            <title>Sample title 2</title>
+            <link>https://media.example/f11</link>
+        </image>
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Wed, 18 Nov 2026 13:12:54 GMT</lastBuildDate>
+        <atom:link href="https://media.example/f13" rel="self" type="application/rss+xml"/>
+        <copyright>Sample copyright 10</copyright>
+        <language><![CDATA[en-gb]]></language>
+        <ttl>15</ttl>
+        <item>
+            <title>Sample title 3</title>
+            <description>Sample description 7</description>
+            <link>https://media.example/f14</link>
+            <guid isPermaLink="false">fixture-id-23</guid>
+            <pubDate>Wed, 18 Nov 2026 12:39:24 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://media.example/f16.jpg"/>
+        </item><item>
+            <title>Sample title 4</title>
+            <description>Sample description 8</description>
+            <link>https://media.example/f17</link>
+            <guid isPermaLink="false">fixture-id-24</guid>
+            <pubDate>Wed, 18 Nov 2026 01:18:18 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://media.example/f19.jpg"/>
+        </item><item>
+            <title>Sample title 5</title>
+            <description>Sample description 9</description>
+            <link>https://media.example/f20</link>
+            <guid isPermaLink="false">fixture-id-25</guid>
+            <pubDate>Wed, 18 Nov 2026 11:12:46 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://media.example/f22.jpg"/>
+        </item>
+    </channel>
+</rss>

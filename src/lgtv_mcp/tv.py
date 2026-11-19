@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import unquote
 
 import aiohttp
+from aiohttp.client_exceptions import WSMessageTypeError
 import aiowebostv.webos_client as _wc
 from aiowebostv import WebOsClient
 from aiowebostv.exceptions import WebOsTvPairError
@@ -178,6 +179,13 @@ class TV:
         save_config(self.cfg)
         return True
 
+    async def reachable(self, timeout: float = 1.5) -> bool:
+        """Is the TV answering? If not at the saved address, look for it on the network once: the
+        router may have given it a new address while it was off."""
+        if self.host and await port_open(self.host, timeout=timeout):
+            return True
+        return await self._rediscover() and await port_open(self.host, timeout=timeout)
+
     async def _drop_client(self) -> None:
         if self.client is None:
             return
@@ -223,6 +231,12 @@ class TV:
             except (TimeoutError, OSError, aiohttp.ClientError) as e:
                 await client.close_client_session()
                 raise TVUnavailable(self.unreachable_message()) from e
+            except WSMessageTypeError as e:  # a TypeError, not a ClientError: the TV closed the socket
+                await client.close_client_session()
+                raise TVUnavailable(
+                    f"The TV at {self.host} answered but closed the connection ({e}); it is probably "
+                    "still shutting down or starting up. Try again in a few seconds."
+                ) from e
 
             if client.client_key and client.client_key != self.cfg.get("client_key"):
                 self.cfg["client_key"] = client.client_key
@@ -264,8 +278,13 @@ class TV:
         standby_state: str | None = None   # last standby state the TV reported
         last_turn_on = -1e9
         connect_error: str | None = None
+        last_search = loop.time()  # when we last looked for the TV at a new address
         while loop.time() < deadline:
-            if self.host and await port_open(self.host, timeout=1):
+            found = bool(self.host) and await port_open(self.host, timeout=1)
+            if not found and loop.time() - last_search >= 8:  # it may come up at a new DHCP address
+                last_search = loop.time()
+                found = await self._rediscover() and await port_open(self.host, timeout=1)
+            if found:
                 if reachable_at is None:
                     reachable_at = loop.time() - start
                 try:

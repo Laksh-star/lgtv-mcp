@@ -13,7 +13,7 @@ import aiohttp
 from aiowebostv import endpoints as ep
 from aiowebostv.exceptions import WebOsTvCommandError
 
-from ..tv import TV, TVError, TVUnavailable, port_open
+from ..tv import TV, TVError, TVUnavailable
 from .config import Config
 from .page import REFRESH_SECONDS
 from .sources import Briefing, gather
@@ -98,7 +98,7 @@ async def show(tv: TV, cfg: Config, *, take_over: bool, auto_off_minutes: int = 
     log.info("run: data ready (%s)", _describe(b))
 
     client = None
-    if tv.host and await port_open(tv.host):
+    if await tv.reachable():
         try:
             client = await tv.connect()
         except TVUnavailable:

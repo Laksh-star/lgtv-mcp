@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="https://media.example/f34"/>
+ <id>fixture-id-60</id>
+ <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+ <title>Sample title 1</title>
+ <link rel="alternate" href="https://media.example/f35"/>
+ <author>Sample author 27</author>
+ <published>2007-08-23T00:34:43+00:00</published>
+ <entry>
+  <id>fixture-id-61</id>
+  <yt:videoId>vid00000054</yt:videoId>
+  <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+  <title>Sample title 2</title>
+  <link rel="alternate" href="https://media.example/f36"/>
+  <author>Sample author 28</author>
+  <published>2026-11-17T17:00:29+00:00</published>
+  <updated>2026-11-17T17:25:23+00:00</updated>
+  <media:group>
+   <media:title>Sample media:title 8</media:title>
+   <media:content url="https://media.example/f37" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://media.example/f38.jpg" width="480" height="360"/>
+   <media:description>Sample media:description 14</media:description>
+   <media:community>
+    <media:starRating count="297" average="5.00" min="1" max="5"/>
+    <media:statistics views="19939"/>
+   </media:community>
+  </media:group>
+ </entry><entry>
+  <id>fixture-id-62</id>
+  <yt:videoId>vid00000055</yt:videoId>
+  <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+  <title>Sample title 3</title>
+  <link rel="alternate" href="https://media.example/f39"/>
+  <author>Sample author 29</author>
+  <published>2026-11-12T17:00:11+00:00</published>
+  <updated>2026-11-15T23:12:00+00:00</updated>
+  <media:group>
+   <media:title>Sample media:title 9</media:title>
+   <media:content url="https://media.example/f40" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://media.example/f41.jpg" width="480" height="360"/>
+   <media:description>Sample media:description 15</media:description>
+   <media:community>
+    <media:starRating count="202" average="5.00" min="1" max="5"/>
+    <media:statistics views="20792"/>
+   </media:community>
+  </media:group>
+ </entry><entry>
+  <id>fixture-id-63</id>
+  <yt:videoId>vid00000056</yt:videoId>
+  <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+  <title>Sample title 4</title>
+  <link rel="alternate" href="https://media.example/f42"/>
+  <author>Sample author 30</author>
+  <published>2026-10-29T20:00:20+00:00</published>
+  <updated>2026-11-04T14:22:25+00:00</updated>
+  <media:group>
+   <media:title>Sample media:title 10</media:title>
+   <media:content url="https://media.example/f43" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://media.example/f44.jpg" width="480" height="360"/>
+   <media:description>Sample media:description 16</media:description>
+   <media:community>
+    <media:starRating count="115" average="5.00" min="1" max="5"/>
+    <media:statistics views="14662"/>
+   </media:community>
+  </media:group>
+ </entry><entry>
+  <id>fixture-id-64</id>
+  <yt:videoId>vid00000057</yt:videoId>
+  <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+  <title>Sample title 5</title>
+  <link rel="alternate" href="https://media.example/f45"/>
+  <author>Sample author 31</author>
+  <published>2026-10-29T01:00:36+00:00</published>
+  <updated>2026-11-02T00:40:43+00:00</updated>
+  <media:group>
+   <media:title>Sample media:title 11</media:title>
+   <media:content url="https://media.example/f46" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://media.example/f47.jpg" width="480" height="360"/>
+   <media:description>Sample media:description 17</media:description>
+   <media:community>
+    <media:starRating count="139" average="5.00" min="1" max="5"/>
+    <media:statistics views="3484"/>
+   </media:community>
+  </media:group>
+ </entry><entry>
+  <id>fixture-id-65</id>
+  <yt:videoId>vid00000058</yt:videoId>
+  <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+  <title>Sample title 6</title>
+  <link rel="alternate" href="https://media.example/f48"/>
+  <author>Sample author 32</author>
+  <published>2026-10-28T21:00:32+00:00</published>
+  <updated>2026-11-02T00:26:24+00:00</updated>
+  <media:group>
+   <media:title>Sample media:title 12</media:title>
+   <media:content url="https://media.example/f49" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://media.example/f50.jpg" width="480" height="360"/>
+   <media:description>Sample media:description 18</media:description>
+   <media:community>
+    <media:starRating count="539" average="5.00" min="1" max="5"/>
+    <media:statistics views="42231"/>
+   </media:community>
+  </media:group>
+ </entry><entry>
+  <id>fixture-id-66</id>
+  <yt:videoId>vid00000059</yt:videoId>
+  <yt:channelId>UCfixturefixturefixture0</yt:channelId>
+  <title>Sample title 7</title>
+  <link rel="alternate" href="https://media.example/f51"/>
+  <author>Sample author 33</author>
+  <published>2026-10-28T15:08:11+00:00</published>
+  <updated>2026-11-09T18:46:43+00:00</updated>
+  <media:group>
+   <media:title>Sample media:title 13</media:title>
+   <media:content url="https://media.example/f52" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://media.example/f53.jpg" width="480" height="360"/>
+   <media:description>Sample media:description 19</media:description>
+   <media:community>
+    <media:starRating count="270" average="5.00" min="1" max="5"/>
+    <media:statistics views="30366"/>
+   </media:community>
+  </media:group>
+ </entry>
+</feed>

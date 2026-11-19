@@ -1,0 +1,368 @@
+[
+ {
+  "id": "117637622238359838",
+  "created_at": "2026-11-18T13:14:20.000Z",
+  "in_reply_to_id": null,
+  "in_reply_to_account_id": null,
+  "sensitive": false,
+  "spoiler_text": "",
+  "visibility": "public",
+  "language": "ja",
+  "uri": "https://media.example/f1",
+  "url": "https://media.example/f2",
+  "replies_count": 0,
+  "reblogs_count": 0,
+  "favourites_count": 0,
+  "quotes_count": 0,
+  "edited_at": null,
+  "content": "<p>Sample content 3<br>second line &amp; more</p>",
+  "reblog": null,
+  "account": {
+   "id": "112165029140383821",
+   "username": "user4.example",
+   "acct": "user4.example@host5.example",
+   "display_name": "Sample display_name 6",
+   "locked": false,
+   "bot": false,
+   "discoverable": true,
+   "indexable": true,
+   "group": false,
+   "created_at": "2024-03-26T00:00:00.000Z",
+   "note": "Sample note 7",
+   "url": "https://media.example/f8",
+   "uri": "https://media.example/f9",
+   "avatar": "https://media.example/f10.jpeg",
+   "avatar_static": "https://media.example/f10.jpeg",
+   "avatar_description": "",
+   "header": "https://media.example/f11.jpeg",
+   "header_static": "https://media.example/f11.jpeg",
+   "header_description": "",
+   "followers_count": 122,
+   "following_count": 35,
+   "statuses_count": 1144,
+   "last_status_at": "2026-11-18",
+   "hide_collections": false,
+   "show_media": true,
+   "show_media_replies": true,
+   "show_featured": true,
+   "feature_approval": {
+    "automatic": [
+     "public"
+    ],
+    "manual": [],
+    "current_user": "denied"
+   }
+  },
+  "media_attachments": [
+   {
+    "id": "117637622141950472",
+    "type": "image",
+    "url": "https://media.example/f12.jpeg",
+    "preview_url": "https://media.example/f13.jpeg",
+    "remote_url": "https://media.example/f14.jpeg",
+    "preview_remote_url": null,
+    "text_url": null,
+    "meta": {
+     "original": {
+      "width": 2279,
+      "height": 3640,
+      "size": "2279x3640",
+      "aspect": 0.6260989010989011
+     },
+     "small": {
+      "width": 380,
+      "height": 607,
+      "size": "380x607",
+      "aspect": 0.6260296540362438
+     }
+    },
+    "description": "Sample description 15",
+    "blurhash": "UFIq$GH;O[KO0{D$%NrC.Ar=-;xrMd%MnnIU"
+   }
+  ],
+  "quote": null,
+  "poll": null,
+  "quote_approval": {
+   "automatic": [
+    "public"
+   ],
+   "manual": [],
+   "current_user": "denied"
+  }
+ },
+ {
+  "id": "117637620696300426",
+  "created_at": "2026-11-18T13:13:58.000Z",
+  "in_reply_to_id": null,
+  "in_reply_to_account_id": null,
+  "sensitive": false,
+  "spoiler_text": "",
+  "visibility": "public",
+  "language": "en",
+  "uri": "https://media.example/f16",
+  "url": "https://media.example/f17",
+  "replies_count": 0,
+  "reblogs_count": 0,
+  "favourites_count": 0,
+  "quotes_count": 0,
+  "edited_at": null,
+  "content": "<p>Sample content 18<br>second line &amp; more</p>",
+  "reblog": null,
+  "account": {
+   "id": "109264519372284491",
+   "username": "user19.example",
+   "acct": "user19.example@host20.example",
+   "display_name": "Sample display_name 21",
+   "locked": false,
+   "bot": false,
+   "discoverable": true,
+   "indexable": false,
+   "group": false,
+   "created_at": "2022-10-30T00:00:00.000Z",
+   "note": "Sample note 22",
+   "url": "https://media.example/f23",
+   "uri": "https://media.example/f24",
+   "avatar": "https://media.example/f25.webp",
+   "avatar_static": "https://media.example/f25.webp",
+   "avatar_description": "",
+   "header": "https://media.example/f26.jpeg",
+   "header_static": "https://media.example/f26.jpeg",
+   "header_description": "",
+   "followers_count": 166,
+   "following_count": 154,
+   "statuses_count": 1397,
+   "last_status_at": "2026-11-18",
+   "hide_collections": true,
+   "show_media": true,
+   "show_media_replies": true,
+   "show_featured": true,
+   "feature_approval": {
+    "automatic": [
+     "public"
+    ],
+    "manual": [],
+    "current_user": "denied"
+   }
+  },
+  "media_attachments": [
+   {
+    "id": "117637620653326785",
+    "type": "image",
+    "url": "https://media.example/f27.jpeg",
+    "preview_url": "https://media.example/f28.jpeg",
+    "remote_url": "https://media.example/f29.jpeg",
+    "preview_remote_url": null,
+    "text_url": null,
+    "meta": {
+     "focus": {
+      "x": 0.0,
+      "y": 0.0
+     },
+     "original": {
+      "width": 1600,
+      "height": 1200,
+      "size": "1600x1200",
+      "aspect": 1.3333333333333333
+     },
+     "small": {
+      "width": 554,
+      "height": 416,
+      "size": "554x416",
+      "aspect": 1.3317307692307692
+     }
+    },
+    "description": "Sample description 30",
+    "blurhash": "U6FFmKD?=:w5~BVsD$RjH?o0yDNbawt6xvxv"
+   }
+  ],
+  "quote": null,
+  "poll": null,
+  "quote_approval": {
+   "automatic": [
+    "public"
+   ],
+   "manual": [],
+   "current_user": "denied"
+  }
+ },
+ {
+  "id": "117637615314400680",
+  "created_at": "2026-11-18T13:12:35.000Z",
+  "in_reply_to_id": null,
+  "in_reply_to_account_id": null,
+  "sensitive": false,
+  "spoiler_text": "",
+  "visibility": "public",
+  "language": "it",
+  "uri": "https://media.example/f31",
+  "url": "https://media.example/f32",
+  "replies_count": 1,
+  "reblogs_count": 1,
+  "favourites_count": 0,
+  "quotes_count": 0,
+  "edited_at": null,
+  "content": "<p>Sample content 33<br>second line &amp; more</p>",
+  "reblog": null,
+  "account": {
+   "id": "113896045709725031",
+   "username": "user34.example",
+   "acct": "user34.example@host35.example",
+   "display_name": "Sample display_name 36",
+   "locked": false,
+   "bot": false,
+   "discoverable": true,
+   "indexable": true,
+   "group": false,
+   "created_at": "2025-01-26T00:00:00.000Z",
+   "note": "Sample note 37",
+   "url": "https://media.example/f38",
+   "uri": "https://media.example/f39",
+   "avatar": "https://media.example/f40.jpg",
+   "avatar_static": "https://media.example/f40.jpg",
+   "avatar_description": "",
+   "header": "https://media.example/f41.jpg",
+   "header_static": "https://media.example/f41.jpg",
+   "header_description": "",
+   "followers_count": 218,
+   "following_count": 74,
+   "statuses_count": 2138,
+   "last_status_at": "2026-11-18",
+   "hide_collections": false,
+   "show_media": true,
+   "show_media_replies": true,
+   "show_featured": true,
+   "feature_approval": {
+    "automatic": [
+     "public"
+    ],
+    "manual": [],
+    "current_user": "denied"
+   }
+  },
+  "media_attachments": [
+   {
+    "id": "117637615213161850",
+    "type": "image",
+    "url": "https://media.example/f42.jpg",
+    "preview_url": "https://media.example/f43.jpg",
+    "remote_url": "https://media.example/f44.jpg",
+    "preview_remote_url": null,
+    "text_url": null,
+    "meta": {
+     "original": {
+      "width": 2352,
+      "height": 3527,
+      "size": "2352x3527",
+      "aspect": 0.6668556847178906
+     },
+     "small": {
+      "width": 392,
+      "height": 588,
+      "size": "392x588",
+      "aspect": 0.6666666666666666
+     }
+    },
+    "description": null,
+    "blurhash": "U85}pxt7M{WBj[ayayof00Rjt7ofxuayayWB"
+   }
+  ],
+  "quote": null,
+  "poll": null,
+  "quote_approval": {
+   "automatic": [
+    "public"
+   ],
+   "manual": [],
+   "current_user": "denied"
+  }
+ },
+ {
+  "id": "117637614171510559",
+  "created_at": "2026-11-18T13:11:58.515Z",
+  "in_reply_to_id": null,
+  "in_reply_to_account_id": null,
+  "sensitive": false,
+  "spoiler_text": "",
+  "visibility": "public",
+  "language": "en",
+  "uri": "https://media.example/f45",
+  "url": "https://media.example/f46",
+  "replies_count": 0,
+  "reblogs_count": 0,
+  "favourites_count": 0,
+  "quotes_count": 0,
+  "edited_at": null,
+  "content": "<p>Sample content 47 #photography<br>second line &amp; more</p>",
+  "reblog": null,
+  "account": {
+   "id": "114639300319052866",
+   "username": "user48.example",
+   "acct": "user48.example@host49.example",
+   "display_name": "Sample display_name 50",
+   "locked": false,
+   "bot": false,
+   "discoverable": true,
+   "indexable": true,
+   "group": false,
+   "created_at": "2024-11-19T00:00:00.000Z",
+   "note": "Sample note 51 #photography",
+   "url": "https://media.example/f52",
+   "uri": "https://media.example/f53",
+   "avatar": "https://media.example/f54.png",
+   "avatar_static": "https://media.example/f54.png",
+   "avatar_description": "",
+   "header": "https://media.example/f55.png",
+   "header_static": "https://media.example/f55.png",
+   "header_description": "",
+   "followers_count": 34,
+   "following_count": 1,
+   "statuses_count": 109,
+   "last_status_at": "2026-11-18",
+   "hide_collections": false,
+   "show_media": true,
+   "show_media_replies": true,
+   "show_featured": true,
+   "feature_approval": {
+    "automatic": [],
+    "manual": [],
+    "current_user": "denied"
+   }
+  },
+  "media_attachments": [
+   {
+    "id": "117637614011523899",
+    "type": "image",
+    "url": "https://media.example/f56.jpeg",
+    "preview_url": "https://media.example/f57.jpeg",
+    "remote_url": "https://media.example/f58",
+    "preview_remote_url": null,
+    "text_url": null,
+    "meta": {
+     "original": {
+      "width": 2882,
+      "height": 2878,
+      "size": "2882x2878",
+      "aspect": 1.0013898540653232
+     },
+     "small": {
+      "width": 480,
+      "height": 479,
+      "size": "480x479",
+      "aspect": 1.0020876826722338
+     }
+    },
+    "description": "Sample description 59",
+    "blurhash": "UcFiPxIUj[WB~qRjj[ayj[t7fQj[IUayofay"
+   }
+  ],
+  "quote": null,
+  "poll": null,
+  "quote_approval": {
+   "automatic": [
+    "public"
+   ],
+   "manual": [],
+   "current_user": "denied"
+  }
+ }
+]

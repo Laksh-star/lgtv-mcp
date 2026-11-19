@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from datetime import datetime
 from html import escape
 
@@ -162,5 +164,5 @@ def render(b: Briefing, tz_name: str) -> str:
   {news}
   <footer><span>Updated {now:%H:%M} · refreshes every 5 minutes</span>{err}</footer>
 </div>
-<script>{CLOCK_JS % {"server_ms": int(now.timestamp() * 1000), "tz": tz_name}}</script>
+<script>{CLOCK_JS % {"server_ms": int(time.time() * 1000), "tz": tz_name}}</script>
 </body></html>"""
