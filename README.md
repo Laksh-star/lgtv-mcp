@@ -34,7 +34,7 @@ With [Screenward](https://github.com/Laksh-star/screenward) alongside, `/movieni
 > Tested live on an **LG 55UT80406LA** (UT80, 2024), webOS 25 (10.3.2), from a Mac mini on the same Wi-Fi.
 
 <p align="center">
-  <a href="docs/architecture.md"><img src="docs/assets/architecture.svg" alt="How lgtv-mcp fits together: Claude talks MCP to a server on the Mac, which drives the LG TV over SSAP, wakes it with Wake-on-LAN, and runs a scheduled morning briefing page from calendar, weather and RSS data" width="100%"></a>
+  <a href="docs/architecture.md"><img src="docs/assets/architecture.svg" alt="How lgtv-mcp fits together: Claude talks MCP to a server on the Mac, which drives the LG TV over SSAP, wakes it with Wake-on-LAN, runs a scheduled morning briefing page from calendar, weather and RSS data, and shows a moderated feed wall of public posts from RSS, YouTube, Bluesky, Mastodon and X links" width="100%"></a>
   <br><sub>Claude ↔ Mac mini ↔ LG TV at a glance. Click through for the detailed diagrams.</sub>
 </p>
 
@@ -463,6 +463,11 @@ The [overview at the top](#-lgtv-mcp) shows the whole system. **[docs/architectu
 | [Morning briefing](docs/architecture.md#morning-briefing) | The two launchd agents, the page server, the data sources and the Keychain |
 | [One scheduled run](docs/architecture.md#one-scheduled-run) | What happens at 07:30: pause check, busy check, page or toasts, auto-off |
 | [Briefing controls](docs/architecture.md#briefing-controls) | Pause, resume, status and restart from chat or the command line |
+| [Feed wall](docs/architecture.md#feed-wall) | Tools, CLI and launchd → `show.py` → sources, moderation, the `/wall` page, caches and the Keychain |
+| [One wall refresh](docs/architecture.md#one-wall-refresh) | What happens on each `/wall/data` request: due sources, cache fallback, dedupe, moderation, interleave |
+| [Showing and ending a wall](docs/architecture.md#showing-and-ending-a-wall) | Pause and hours check, busy check or takeover, load confirmation, end time |
+| [Moderation order](docs/architecture.md#moderation-order) | Which rule drops a post, holds it for approval, or shows it |
+| [The TV's screensaver](docs/architecture.md#the-tvs-screensaver) | Why the page server keeps clearing it, and when, for the briefing and the wall |
 
 ### Project layout
 
@@ -476,14 +481,14 @@ lg-tv/
 │   ├── tv.py                  # connection, SSDP rediscovery, pairing, Wake-on-LAN, ensure_on()
 │   ├── screensaver.py         # dismiss the webOS screensaver over the briefing / feed wall
 │   ├── pair.py                # `lgtv-pair` CLI
-│   └── briefing/
-│       ├── cli.py             # `briefing now|run|pause|resume|restart|serve|preview|install|uninstall|status`
-│       ├── control.py         # pause/resume state, next-briefing date, status, page server restart
-│       ├── config.py          # briefing.toml, Keychain lookup, rotating log
-│       ├── sources.py         # iCal (recurrence/timezones), Open-Meteo, RSS; each fails on its own
-│       ├── page.py            # 1080p TV page (dark, large type, 5-min refresh, live clock)
-│       ├── web.py             # aiohttp server with an IP allowlist
-│       └── show.py            # busy check, browser launch + load confirmation, toasts, auto-off
+│   ├── briefing/
+│   │   ├── cli.py             # `briefing now|run|pause|resume|restart|serve|preview|install|uninstall|status`
+│   │   ├── control.py         # pause/resume state, next-briefing date, status, page server restart
+│   │   ├── config.py          # briefing.toml, Keychain lookup, rotating log
+│   │   ├── sources.py         # iCal (recurrence/timezones), Open-Meteo, RSS; each fails on its own
+│   │   ├── page.py            # 1080p TV page (dark, large type, 5-min refresh, live clock)
+│   │   ├── web.py             # aiohttp server with an IP allowlist; serves /wall too; screensaver watcher
+│   │   └── show.py            # busy check, browser launch + load confirmation, toasts, auto-off
 │   └── feedwall/
 │       ├── cli.py             # `feedwall now|run|stop|status|refresh|pending|approve|reject|pause|resume|install|uninstall`
 │       ├── config.py          # feedwall.toml, sources added from chat, Keychain helpers, log
@@ -492,11 +497,12 @@ lg-tv/
 │       ├── wall.py            # refresh (each source fails on its own), build, approve/reject
 │       ├── schedule.py        # show-hours windows, pauses, end times
 │       ├── page.py            # 1080p wall page, QR codes
-│       ├── web.py             # /wall routes on the briefing server, image proxy, end-time watcher
+│       ├── web.py             # /wall routes on the briefing server, image proxy, end-time + screensaver watcher
 │       ├── store.py           # cache, state and decisions files (with file locks)
 │       ├── control.py         # status, approvals, pauses, source list (CLI + tools)
-│       └── show.py            # busy check, browser launch, stop
-├── tests/                     # pytest: moderation, source parsing (scrubbed recorded fixtures), schedule
+│       └── show.py            # busy check, browser launch, stop, screensaver recovery
+├── docs/                      # architecture.md (diagrams) + assets/architecture.svg (overview)
+├── tests/                     # pytest: moderation, source parsing (scrubbed recorded fixtures), schedule, screensaver
 ├── .claude/skills/movienight/  # /movienight skill (Screenward + play_title)
 └── scripts/
     └── install_claude_desktop.py
@@ -531,7 +537,11 @@ Issues are welcome. Please include your TV model, webOS version and the relevant
 | A tool says the TV is off or unreachable while it's on | Check the Mac and the TV are on the same Wi-Fi. Run `get_status` again; it searches for the TV over SSDP if its IP changed |
 | `lgtv` is missing from the desktop app's Connectors | Cmd+Q the app, run `scripts/install_claude_desktop.py`, then reopen |
 | The briefing shows "Calendar unavailable" | `uv run briefing status` shows whether the Keychain item was found. The log gives the reason, e.g. an address Google has reset |
-| Nothing showed at 07:30 | `briefing_status` (or `uv run briefing status`) shows the last run. "Never answered on the network" means the TV was fully off: check *TV On With Mobile* and that it isn't switched off at the wall. "Stayed in standby" means it ignored the turn-on requests |
+| Nothing showed at 07:30 | `briefing_status` (or `uv run briefing status`) shows the last run. "Never answered on the network" means the TV was fully off: check *TV On With Mobile* and that it isn't switched off at the wall (a TV that comes up at a new address is found over SSDP). "Stayed in standby" means it ignored the turn-on requests |
+| "The TV answered but closed the connection" | The TV is still shutting down or starting up, which takes up to about 2 minutes after a power-off. Try again shortly |
+| The screensaver keeps appearing over the briefing or the wall | Expected every ~3 minutes: webOS can't be told not to, so the page server clears it within 5 s and reloads the page. Right after a page-server restart, the briefing is picked up at its next 5-minute reload |
+| The wall says "Posts will appear here once they're approved" | The organization profile's approval queue is on: `list_pending_posts`, then `approve_posts` (or `uv run feedwall pending` / `approve`). If nothing is pending, the allowlist may not match anyone posting right now; `feed_wall_status` shows what moderation dropped and why |
+| A feed source shows "last updated … (couldn't connect)" | That source is failing and the wall is showing its last good posts. `feed_wall_status` and `~/Library/Logs/lg-tv-feedwall.log` give the reason. Bluesky search/timeline and YouTube search need their Keychain items (see [Feed wall](#-feed-wall)) |
 | The briefing came as toasts, not a page | Check `briefing.server` is `running` in `uv run briefing status`, and read the log for "never loaded" |
 | `play_title` says `needs_lookup` | Wikidata has no id for that app. Claude can web-search it (`id_hint` says what to look for) and pass `app_content_id`. Or use `open_without_id: true` |
 | A Netflix title opens on a page with **Remind Me** | It isn't streaming in India. Check `find_where_to_watch` in Screenward |
@@ -545,7 +555,7 @@ Issues are welcome. Please include your TV model, webOS version and the relevant
 uv run python -c "import asyncio; from lgtv_mcp.server import mcp; print([t.name for t in asyncio.run(mcp.list_tools())])"
 uv run mcp dev src/lgtv_mcp/server.py      # MCP Inspector
 uv run briefing preview                     # iterate on the TV page in a desktop browser
-uv run pytest                               # feed wall unit tests
+uv run pytest                               # unit tests (feed wall, screensaver)
 open http://127.0.0.1:8765/wall?profile=personal   # the wall in a desktop browser (localhost is allowed)
 ```
 
