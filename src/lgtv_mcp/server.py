@@ -21,7 +21,7 @@ from mcp.server.mcpserver import Image, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from .tv import TV, TVError, port_open
+from .tv import TV, TVError
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
@@ -168,7 +168,7 @@ async def power_on() -> str:
 @tv_tool
 async def power_off() -> str:
     """Turn the TV off (to standby)."""
-    if tv.host and not await port_open(tv.host):
+    if not await tv.reachable():
         return "The TV is already off (not reachable on the network)."
     client = await tv.connect()
     if not client.tv_state.is_on:
@@ -199,7 +199,7 @@ async def screen_on() -> str:
 @tv_tool
 async def get_status() -> dict[str, Any]:
     """Power state, current app, input, volume/mute and sound output of the TV."""
-    if tv.host and not await port_open(tv.host):
+    if not await tv.reachable():
         return {"power": "Off (unreachable)", "is_on": False, "tv": {"host": tv.host},
                 "hint": "Call power_on to wake it."}
     client = await tv.connect()
@@ -667,6 +667,203 @@ async def restart_briefing_server() -> str:
     except RuntimeError as e:
         raise ToolError(str(e)) from e
     log.info("restart: page server restarted through the restart_briefing_server tool")
+    return msg
+
+
+# ---------------------------------------------------------------- feed wall
+
+_SOURCE_PARAM = {
+    "rss": "url", "youtube": "channel", "youtube_search": "query", "bluesky_author": "actor",
+    "bluesky_feed": "feed", "bluesky_search": "query", "bluesky_timeline": None,
+    "mastodon_account": "account", "mastodon_tag": "tag", "x_post": "urls",
+}
+
+
+def _feedwall_log():
+    from .feedwall.config import setup_logging
+
+    return setup_logging()
+
+
+@mcp.tool()
+@tv_tool
+async def show_feed_wall(
+    profile: Annotated[str, Field(description="'personal' (your sources; a toast if the TV is busy) or "
+                                              "'organization' (dedicated screen, strict moderation), or another "
+                                              "profile from feedwall.toml")] = "personal",
+    minutes: Annotated[int | None, Field(ge=0, le=1440, description="How long to show it; 0 = until stopped. "
+                                         "Default: the profile's (30 personal, 120 organization)")] = None,
+    take_over: Annotated[bool | None, Field(description="Take over the screen even if something is playing. "
+                                            "Default: no for personal, yes for organization")] = None,
+) -> str:
+    """Show a rotating wall of posts (Bluesky, Mastodon, YouTube, RSS, chosen X posts) on the TV,
+    e.g. "show the #event wall for 2 hours". Turns the TV on if needed."""
+    from .feedwall.show import show_wall
+
+    _feedwall_log().info("show %s: requested through the show_feed_wall tool", profile)
+    try:
+        return await show_wall(tv, profile, minutes=minutes, take_over=take_over)
+    except ValueError as e:
+        raise ToolError(str(e)) from e
+
+
+@mcp.tool()
+@tv_tool
+async def stop_feed_wall(
+    turn_off: Annotated[bool, Field(description="Turn the TV off instead of going to the home screen")] = False,
+) -> str:
+    """Take the feed wall off the TV now."""
+    from .feedwall.show import end_wall
+
+    return await end_wall(tv, "stopped through the stop_feed_wall tool", action="off" if turn_off else None)
+
+
+@mcp.tool()
+async def feed_wall_status() -> dict[str, Any]:
+    """What the feed wall is showing, each source's health and last update, posts waiting for
+    approval, moderation in effect, schedules and pauses, and which credentials are set up."""
+    from datetime import datetime
+
+    from .briefing.config import load_config as load_briefing_config
+    from .feedwall import control
+    from .feedwall.config import load_config
+
+    try:
+        cfg = load_config()
+    except ValueError as e:
+        raise ToolError(f"feedwall.toml has a problem: {e}") from e
+    return await asyncio.to_thread(control.status, cfg, datetime.now(load_briefing_config().tz))
+
+
+@mcp.tool()
+async def list_pending_posts(
+    profile: Annotated[str, Field(description="Profile whose approval queue to list")] = "organization",
+    limit: Annotated[int, Field(ge=1, le=100)] = 20,
+) -> list[dict[str, Any]]:
+    """Posts waiting for approval before they appear on the wall, newest first (id, author, text,
+    image alt text, link). Fetches the sources first if they're due."""
+    from .feedwall import control
+
+    try:
+        return await control.pending(profile, limit)
+    except ValueError as e:
+        raise ToolError(str(e)) from e
+
+
+async def _decide_posts(status: str, ids: list[str] | None, newest: int | None, profile: str) -> str:
+    from .feedwall import control
+
+    if not ids and not newest:
+        raise ToolError("Give post ids from list_pending_posts, or newest=N.")
+    try:
+        msg = await control.moderate_posts(profile, status, ids, newest)
+    except ValueError as e:
+        raise ToolError(str(e)) from e
+    _feedwall_log().info("moderation: %s (%s profile, through the tool)", msg, profile)
+    return msg
+
+
+@mcp.tool()
+async def approve_posts(
+    ids: Annotated[list[str] | None, Field(description="Post ids from list_pending_posts")] = None,
+    newest: Annotated[int | None, Field(ge=1, le=100, description="Approve the newest N pending posts instead, "
+                                        "e.g. 5 for 'approve the last 5'")] = None,
+    profile: str = "organization",
+) -> str:
+    """Approve pending posts so they appear on the wall. An approved post that is later edited goes back to the queue."""
+    return await _decide_posts("approved", ids, newest, profile)
+
+
+@mcp.tool()
+async def reject_posts(
+    ids: Annotated[list[str] | None, Field(description="Post ids from list_pending_posts (or on the wall now)")] = None,
+    newest: Annotated[int | None, Field(ge=1, le=100, description="Reject the newest N pending posts instead")] = None,
+    profile: str = "organization",
+) -> str:
+    """Reject posts so they never appear on the wall (also takes a post off the wall if it's showing)."""
+    return await _decide_posts("rejected", ids, newest, profile)
+
+
+@mcp.tool()
+async def manage_feed_source(
+    action: Literal["add", "remove", "list"],
+    kind: Annotated[Literal["rss", "youtube", "youtube_search", "bluesky_author", "bluesky_feed", "bluesky_search",
+                            "bluesky_timeline", "mastodon_account", "mastodon_tag", "x_post"] | None,
+                    Field(description="For add. x_post adds one X post link to the profile's curated X list")] = None,
+    value: Annotated[str | None, Field(description="For add: the feed URL (rss), @handle or UC… id (youtube), search "
+                                       "text (youtube_search, bluesky_search), handle (bluesky_author), feed link "
+                                       "(bluesky_feed), user@instance (mastodon_account), hashtag (mastodon_tag) or "
+                                       "post link (x_post)")] = None,
+    instance: Annotated[str | None, Field(description="Mastodon server for mastodon_tag (default mastodon.social)")] = None,
+    source_id: Annotated[str | None, Field(description="For remove: the source id. For add: optional id to use")] = None,
+    profile: Annotated[str, Field(description="Profile to add the source to")] = "personal",
+) -> str | list[dict[str, Any]]:
+    """List, add or remove feed wall sources, e.g. "add #DevFest on Mastodon to the organization wall"
+    or "put this X post on the wall". Sources added here live in feedwall-sources.json."""
+    import re as _re
+
+    from .feedwall import config as fwc
+    from .feedwall.control import list_sources
+
+    try:
+        if action == "list":
+            return list_sources(fwc.load_config())
+        if action == "remove":
+            if not source_id:
+                raise ToolError("Give the source_id to remove (see action='list').")
+            msg = fwc.remove_source(source_id)
+        else:
+            if not kind:
+                raise ToolError("Give the kind of source to add.")
+            param = _SOURCE_PARAM[kind]
+            if param and not value:
+                raise ToolError(f"Give the {param} for a {kind} source in 'value'.")
+            raw: dict[str, Any] = {"kind": "x_posts" if kind == "x_post" else kind}
+            if kind == "x_post":
+                raw["urls"] = [value]
+            elif param:
+                raw[param] = value.strip()
+            if kind == "mastodon_account":
+                acct = value.strip().lstrip("@")
+                if "@" not in acct and not instance:
+                    raise ToolError("Give the account as user@instance.")
+                raw["account"], raw["instance"] = acct, instance or acct.split("@", 1)[1]
+            if kind == "mastodon_tag":
+                raw["tag"], raw["instance"] = value.strip().lstrip("#"), instance or "mastodon.social"
+            if kind != "x_post":
+                slug = _re.sub(r"[^a-z0-9]+", "-", f"{kind.split('_')[0]}-{value or kind}".lower()).strip("-")[:40]
+                raw["id"] = source_id or slug
+            elif source_id:
+                raw["id"] = source_id
+            msg = fwc.add_source(raw, profile)
+    except ValueError as e:
+        raise ToolError(str(e)) from e
+    _feedwall_log().info("sources: %s (through the manage_feed_source tool)", msg)
+    return msg
+
+
+@mcp.tool()
+async def pause_feed_wall(
+    profile: str = "organization",
+    until: Annotated[str | None, Field(description="Skip scheduled showings through this date, YYYY-MM-DD")] = None,
+    indefinitely: Annotated[bool, Field(description="Skip them until resumed")] = False,
+    resume: Annotated[bool, Field(description="End a pause instead")] = False,
+) -> str:
+    """Pause or resume a profile's scheduled show hours (doesn't affect show_feed_wall)."""
+    from datetime import date, datetime
+
+    from .briefing.config import load_config as load_briefing_config
+    from .feedwall import control
+
+    now = datetime.now(load_briefing_config().tz)
+    try:
+        if resume:
+            msg = control.resume(profile, now)
+        else:
+            msg = control.pause(profile, now, date.fromisoformat(until) if until else None, indefinitely)
+    except ValueError as e:
+        raise ToolError(str(e)) from e
+    _feedwall_log().info("pause: %s (through the pause_feed_wall tool)", msg)
     return msg
 
 

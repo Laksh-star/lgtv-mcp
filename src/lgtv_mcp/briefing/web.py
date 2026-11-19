@@ -82,6 +82,11 @@ def make_app() -> web.Application:
     app = web.Application(middlewares=[guard])
     app.add_routes([web.get("/", page), web.get("/healthz", health),
                     web.get("/api/views", views), web.post("/api/refresh", refresh)])
+    try:  # the feed wall shares this server; a problem there must not take the briefing down
+        from ..feedwall.web import setup as setup_feed_wall
+        setup_feed_wall(app)
+    except Exception as e:  # noqa: BLE001
+        log.exception("server: feed wall routes not loaded: %s", e)
     return app
 
 
