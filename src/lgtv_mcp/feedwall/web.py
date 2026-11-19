@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import aiohttp
 from aiohttp import web
 
+from .. import screensaver
 from .config import load_config
 from .page import render_shell
 from .sources import UA
@@ -30,7 +31,6 @@ log = logging.getLogger("feedwall")
 CSP = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; "
        "connect-src 'self'; base-uri 'none'; form-action 'none'")
 WATCH_SECONDS = 20
-SAVER_CHECK_SECONDS = 5  # how long the TV's screensaver can stay up over the wall
 
 wall_views: dict[str, dict] = {}  # ip -> {"at": unix time, "profile": name}
 _img_session: aiohttp.ClientSession | None = None
@@ -122,7 +122,7 @@ async def _watch(app: web.Application) -> None:
     last_prune, tv, tv_retry_at = 0.0, None, 0.0
     while True:
         showing = read_state().get("showing")
-        await asyncio.sleep(SAVER_CHECK_SECONDS if showing else WATCH_SECONDS)
+        await asyncio.sleep(screensaver.CHECK_SECONDS if showing else WATCH_SECONDS)
         try:
             st = read_state().get("showing") or {}
             if not st:

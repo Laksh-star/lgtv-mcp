@@ -210,6 +210,7 @@ Every weekday at **07:30** the TV shows a full-screen page, refreshed every 5 mi
 | 🎬 Playing something, on Live TV or HDMI, or in an app | **Leaves the screen alone** and shows a toast: *"Morning briefing: 2 meetings today, next at 10:00 · 29°C, rain 0%"* |
 
 - **Auto turn-off:** if the page is still on screen after 30 minutes, the TV turns off. If someone switched to something else, it stays on.
+- **No screensaver:** webOS puts up its screensaver about every 3 minutes without remote input, and offers no way to keep it off. Until the auto turn-off time (30 minutes if that's set to 0), the page server checks every 5 s, dismisses the screensaver and reloads the page. You may see the screensaver for a few seconds now and then.
 - **Fallback:** if the browser doesn't load the page, the briefing arrives as a few toasts instead.
 - **Waking the TV:** it keeps sending Wake-on-LAN, and asks a TV in standby to turn on every 5 s, for up to 90 s. If the TV still doesn't come on, the 07:30 run tries once more 2 minutes later. The log says which stage failed: no reply on the network, or stuck in standby.
 - **One source failing doesn't stop the rest:** that panel says "unavailable", and the log records why.
@@ -308,7 +309,7 @@ A rotating wall of public posts on the TV, built on the briefing's page server: 
 
 Both run in the TV's web browser, like the briefing. The wall ends on time, even if the chat that started it has closed: the page server watches the end time and goes back to the home screen (or turns the TV off, with `at_end = "off"`).
 
-webOS puts up its screensaver about every 3 minutes when nobody touches the remote, even over a page that keeps changing, and it offers no way to keep it off. While a wall is showing, the page server checks every 5 s, dismisses the screensaver and reloads the wall, which carries on from the post it was on. You may see the screensaver for a few seconds now and then.
+The TV's screensaver is handled as for the briefing: while a wall is showing, the page server checks every 5 s, dismisses it and reloads the wall, which carries on from the post it was on. You may see the screensaver for a few seconds now and then.
 
 ### Sources (tested from India on 18 Nov 2026)
 
@@ -473,6 +474,7 @@ lg-tv/
 │   ├── scenes.py              # capture_scene / annotate_scene / list_scenes: scene cards
 │   ├── titles.py              # TMDB id -> Netflix / Prime / JioHotstar ids via Wikidata, with a cache
 │   ├── tv.py                  # connection, SSDP rediscovery, pairing, Wake-on-LAN, ensure_on()
+│   ├── screensaver.py         # dismiss the webOS screensaver over the briefing / feed wall
 │   ├── pair.py                # `lgtv-pair` CLI
 │   └── briefing/
 │       ├── cli.py             # `briefing now|run|pause|resume|restart|serve|preview|install|uninstall|status`

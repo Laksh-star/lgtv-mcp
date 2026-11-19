@@ -18,6 +18,7 @@ from aiowebostv.exceptions import WebOsTvCommandError
 
 from ..briefing.config import load_config as load_briefing_config
 from ..briefing.show import BROWSER, PAGE_LOAD_TIMEOUT, WAKE_TIMEOUT, _busy, _local, mac_lan_ip
+from .. import screensaver
 from ..tv import TV, TVError, TVUnavailable
 from . import schedule
 from .config import Config, Profile, load_config
@@ -26,7 +27,6 @@ from .wall import Wall, build, refresh
 
 log = logging.getLogger("feedwall")
 HOME_APP = "com.webos.app.home"
-SCREEN_SAVER = "Screen Saver"
 
 
 async def _wall_up(client, tv_host: str | None, bcfg) -> bool:
@@ -42,21 +42,17 @@ def wall_url(tv_host: str | None, port: int, profile: str) -> str:
 
 
 async def revive_wall(tv: TV, showing: dict[str, Any]) -> str | None:
-    """Undo the TV's screensaver over the wall.
-
-    webOS starts its screensaver after a few minutes without remote input, even over a page that keeps
-    updating, and turnOnScreen can't prevent it (it is refused while the screen is active), only dismiss it.
-    After that the browser comes back black, so the wall is reloaded too.
-    """
+    """Undo the TV's screensaver over the wall (see lgtv_mcp.screensaver for why it can't be prevented)."""
     client = await tv.connect()
-    if (await client.get_power_state()).get("state") != SCREEN_SAVER or client.tv_state.current_app_id != BROWSER:
+    if not await screensaver.over_browser(client):
         return None
     bcfg = load_briefing_config()
     if await wall_on_screen(client, tv.host, bcfg) != showing.get("profile"):
         return None  # the browser is showing something else: leave it alone
-    await client.request("com.webos.service.tvpower/power/turnOnScreen", {"standbyMode": "active"})
-    await client.request(ep.LAUNCH, {"id": BROWSER, "params": {"target": wall_url(tv.host, bcfg.port, showing["profile"])}})
+    await screensaver.dismiss_and_reload(client, wall_url(tv.host, bcfg.port, showing["profile"]))
     return f"dismissed the TV's screensaver and reloaded the {showing['profile']} wall"
+
+
 ON_SCREEN_SECONDS = 150  # the wall polls every 60 s; a view this recent means it's still on screen
 
 
